@@ -129,6 +129,31 @@ export const getProjectApplicationStatusCopy = (
   return null
 }
 
+export const getProjectApplicationUnavailableTitle = (context: {
+  projectStatus: Project['status'] | null | undefined
+  applicationStatus: string | null | undefined
+  isProjectOwner: boolean
+  isInitiatorOrganizationAdmin: boolean
+}): string => {
+  const applicationCopy = getProjectApplicationStatusCopy(context.applicationStatus)
+  if (applicationCopy) return applicationCopy.title
+  if (context.isProjectOwner) return 'Kamu Project Lead'
+  if (context.isInitiatorOrganizationAdmin) return 'Proyek dari organisasimu'
+  if (context.projectStatus === 'awaiting_owner') return 'Menunggu Project Lead'
+  return 'Lamaran belum tersedia'
+}
+
+export const getProjectOwnerAttribution = (
+  project: Pick<Project, 'creation_mode' | 'owner_id' | 'creator_id'>
+): string => {
+  if (!project.owner_id) return 'Kepemilikan belum ditetapkan'
+  if (
+    project.creation_mode === 'personal' &&
+    project.owner_id === project.creator_id
+  ) return 'Pemilik proyek'
+  return 'Project Lead'
+}
+
 export const getProjectContributorOutcome = (
   project: Pick<Project, 'contributor_outcome'>
 ): string | null => project.contributor_outcome?.trim() || null

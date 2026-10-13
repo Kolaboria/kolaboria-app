@@ -7,7 +7,7 @@ import type {
   ApplyProjectRequest,
   ProjectApplicationReceipt
 } from '../types/project'
-import type { ProjectSummaryResponse } from '../types/project-editor'
+import type { MyProjectSummaryResponse, ProjectSummaryResponse } from '../types/project-editor'
 import { MasterService } from './master.service'
 import { ApplicationService } from './application.service'
 
@@ -21,13 +21,12 @@ export const ProjectService = {
   },
 
   async getMyProjectSummaries(
-    scope: 'owned' | 'initiated',
     query: { page: number; limit: number }
   ) {
     const { $api } = useApi()
-    return await $api<ApiPaginatedResponse<ProjectSummaryResponse>>(
+    return await $api<ApiPaginatedResponse<MyProjectSummaryResponse>>(
       API_ENDPOINTS.PROJECT.MY_PROJECTS,
-      { query: { scope, ...query } }
+      { query: { scope: 'all', ...query } }
     )
   },
 

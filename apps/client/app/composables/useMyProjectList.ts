@@ -25,30 +25,18 @@ export const useMyProjectList = (accountId: Ref<string | null>) => {
     }
 
     let page = 1
-    let scopes: MyProjectSummaryResponse['my_scope'][] = ['owned', 'initiated']
-    const accumulated = new Map<string, MyProjectSummaryResponse>()
+    let hasNextPage = true
     try {
-      while (scopes.length) {
-        const batches = await Promise.all(scopes.map(async scope => ({
-          scope,
-          response: await ProjectService.getMyProjectSummaries(scope, { page, limit: 100 })
-        })))
+      while (hasNextPage) {
+        const response = await ProjectService.getMyProjectSummaries({ page, limit: 100 })
         if (requestSequence !== sequence || requestAccount !== accountId.value) return
 
-        const remainingScopes: MyProjectSummaryResponse['my_scope'][] = []
-        for (const { scope, response } of batches) {
-          for (const project of response.data) {
-            // A project may appear in either scope on different API pages.
-            if (!accumulated.has(project.id) || scope === 'owned') {
-              accumulated.set(project.id, { ...project, my_scope: scope })
-            }
-          }
-          if (page < (response.meta?.total_pages ?? page)) remainingScopes.push(scope)
-        }
-        projects.value = [...accumulated.values()]
+        projects.value = page === 1
+          ? [...response.data]
+          : [...projects.value, ...response.data]
         pending.value = false
-        scopes = remainingScopes
-        loadingMore.value = scopes.length > 0
+        hasNextPage = page < (response.meta?.total_pages ?? page)
+        loadingMore.value = hasNextPage
         page++
       }
     } catch (failure: unknown) {

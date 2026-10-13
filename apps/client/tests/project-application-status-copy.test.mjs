@@ -18,3 +18,32 @@ test('application status copy describes pending and accepted applications accura
   })
   assert.equal(presentation.getProjectApplicationStatusCopy(null), null)
 })
+
+test('unavailable application title describes the reason applications are unavailable', () => {
+  assert.equal(typeof presentation.getProjectApplicationUnavailableTitle, 'function')
+
+  assert.equal(presentation.getProjectApplicationUnavailableTitle({
+    projectStatus: 'open',
+    applicationStatus: null,
+    isProjectOwner: false,
+    isInitiatorOrganizationAdmin: true
+  }), 'Proyek dari organisasimu')
+  assert.equal(presentation.getProjectApplicationUnavailableTitle({
+    projectStatus: 'open',
+    applicationStatus: null,
+    isProjectOwner: true,
+    isInitiatorOrganizationAdmin: false
+  }), 'Kamu Project Lead')
+  assert.equal(presentation.getProjectApplicationUnavailableTitle({
+    projectStatus: 'awaiting_owner',
+    applicationStatus: null,
+    isProjectOwner: false,
+    isInitiatorOrganizationAdmin: false
+  }), 'Menunggu Project Lead')
+  assert.equal(presentation.getProjectApplicationUnavailableTitle({
+    projectStatus: 'open',
+    applicationStatus: 'pending',
+    isProjectOwner: true,
+    isInitiatorOrganizationAdmin: false
+  }), 'Lamaran sedang ditinjau')
+})

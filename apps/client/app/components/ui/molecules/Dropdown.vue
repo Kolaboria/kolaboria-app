@@ -12,7 +12,7 @@
 
     <div class="relative" ref="triggerRef">
       <div
-        class="flex h-11 min-h-[44px] w-full flex-wrap items-center gap-1.5 rounded-lg border bg-white px-3 py-2 transition-all duration-150 focus:outline-none"
+        class="flex min-h-[44px] w-full flex-wrap items-center gap-1.5 rounded-lg border bg-white px-3 py-2 transition-all duration-150 focus:outline-none"
         :tabindex="disabled ? -1 : 0"
         role="combobox"
         aria-haspopup="listbox"

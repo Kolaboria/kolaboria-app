@@ -31,18 +31,7 @@ export const useProjects = () => {
   }
 
   const getMyProjectSummaries = async (): Promise<MyProjectSummaryResponse[]> => {
-    const [ownedResponse, initiatedResponse] = await Promise.all([
-      getAllSummaryPages(page => ProjectService.getMyProjectSummaries('owned', { page, limit: 100 })),
-      getAllSummaryPages(page => ProjectService.getMyProjectSummaries('initiated', { page, limit: 100 }))
-    ])
-    const unique = new Map<string, MyProjectSummaryResponse>()
-    for (const project of ownedResponse) {
-      unique.set(project.id, { ...project, my_scope: 'owned' })
-    }
-    for (const project of initiatedResponse) {
-      if (!unique.has(project.id)) unique.set(project.id, { ...project, my_scope: 'initiated' })
-    }
-    return [...unique.values()]
+    return getAllSummaryPages(page => ProjectService.getMyProjectSummaries({ page, limit: 100 }))
   }
 
   // ============================================================

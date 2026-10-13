@@ -11,20 +11,18 @@ const batch = (ids, page, totalPages) => ({
   meta: { page, limit: 100, total: ids.length, total_pages: totalPages }
 })
 
-test('progressive list preserves owned precedence across pages and stops finished scopes', async () => {
+test('progressive list loads one combined scope per page', async () => {
   const original = ProjectService.getMyProjectSummaries
   const requests = []
-  ProjectService.getMyProjectSummaries = async (scope, { page }) => {
-    requests.push(`${scope}:${page}`)
-    if (scope === 'initiated') return batch(['shared', 'initiated-only'], page, 1)
-    return batch(page === 1 ? ['owned-first'] : ['shared'], page, 2)
+  ProjectService.getMyProjectSummaries = async ({ page }) => {
+    requests.push(page)
+    return batch(page === 1 ? ['owned-first', 'initiated-only'] : ['owned-second'], page, 2)
   }
   const mounted = mountSetup(() => useMyProjectList(ref('account-a')))
   try {
     await settle()
-    assert.deepEqual(mounted.bindings.projects.value.map(p => p.id).sort(), ['initiated-only', 'owned-first', 'shared'])
-    assert.equal(mounted.bindings.projects.value.find(p => p.id === 'shared').my_scope, 'owned')
-    assert.deepEqual(requests.sort(), ['initiated:1', 'owned:1', 'owned:2'])
+    assert.deepEqual(mounted.bindings.projects.value.map(p => p.id).sort(), ['initiated-only', 'owned-first', 'owned-second'])
+    assert.deepEqual(requests, [1, 2])
     assert.equal(mounted.bindings.loadingMore.value, false)
   } finally { mounted.unmount(); ProjectService.getMyProjectSummaries = original }
 })
@@ -32,8 +30,7 @@ test('progressive list preserves owned precedence across pages and stops finishe
 test('later-page failure keeps the first batch visible and a refresh can recover', async () => {
   const original = ProjectService.getMyProjectSummaries
   let fail = true
-  ProjectService.getMyProjectSummaries = async (scope, { page }) => {
-    if (scope === 'initiated') return batch([], page, 1)
+  ProjectService.getMyProjectSummaries = async ({ page }) => {
     if (page === 2 && fail) throw new Error('network unavailable')
     return batch([`project-${page}`], page, 2)
   }
@@ -56,8 +53,8 @@ test('late responses from the previous account cannot repopulate a cleared list'
   let release
   const oldResponse = new Promise(resolve => { release = resolve })
   const account = ref('account-a')
-  ProjectService.getMyProjectSummaries = (scope, { page }) => account.value === 'account-a'
-    ? oldResponse : Promise.resolve(batch(scope === 'owned' ? ['account-b-project'] : [], page, 1))
+  ProjectService.getMyProjectSummaries = ({ page }) => account.value === 'account-a'
+    ? oldResponse : Promise.resolve(batch(['account-b-project'], page, 1))
   const mounted = mountSetup(() => useMyProjectList(account))
   try {
     account.value = 'account-b'
@@ -77,13 +74,13 @@ test('unmount prevents a pending response from writing state or fetching later p
   let release
   const response = new Promise(resolve => { release = resolve })
   const requests = []
-  ProjectService.getMyProjectSummaries = (scope, { page }) => { requests.push(`${scope}:${page}`); return response }
+  ProjectService.getMyProjectSummaries = ({ page }) => { requests.push(page); return response }
   const mounted = mountSetup(() => useMyProjectList(ref('account-a')))
   mounted.unmount()
   try {
     release(batch(['late-project'], 1, 3))
     await settle()
     assert.deepEqual(mounted.bindings.projects.value, [])
-    assert.deepEqual(requests.sort(), ['initiated:1', 'owned:1'])
+    assert.deepEqual(requests, [1])
   } finally { ProjectService.getMyProjectSummaries = original }
 })

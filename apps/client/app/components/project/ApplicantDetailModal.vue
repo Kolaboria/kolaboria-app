@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { Application } from '../../types/project'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   application: Application | null
   modelValue: boolean
-}>()
+  submitting?: boolean
+}>(), { submitting: false })
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -13,288 +14,138 @@ const emit = defineEmits<{
 }>()
 
 const reviewerNote = ref('')
-const isSubmitting = ref(false)
-
-// Reset note when modal opens/closes
-watch(
-  () => props.modelValue,
-  (val) => {
-    if (!val) reviewerNote.value = ''
-  }
+const decision = ref<'accepted' | 'rejected' | null>(null)
+const applicantName = computed(() =>
+  props.application?.profiles?.full_name || props.application?.profiles?.username || 'Talent Kolaboria'
 )
-
-const { show: showPopup } = usePopup()
-
-const handleReview = (status: 'accepted' | 'rejected') => {
-  if (!props.application) return
-
-  const isAccepted = status === 'accepted'
-  const applicantName =
-    props.application.profiles?.full_name ||
-    props.application.profiles?.username ||
-    'Talent'
-
-  showPopup({
-    title: isAccepted ? 'Terima Pelamar?' : 'Tolak Lamaran?',
-    description: isAccepted
-      ? `Apakah Anda yakin ingin menerima <b>${applicantName}</b> sebagai kontributor di project ini?`
-      : `Apakah Anda yakin ingin menolak lamaran dari <b>${applicantName}</b>? Tindakan ini tidak dapat dibatalkan.`,
-    type: isAccepted ? 'info' : 'warning',
-    positiveLabel: isAccepted ? 'Ya, Terima' : 'Ya, Tolak',
-    negativeLabel: 'Batal',
-    onPositive: async () => {
-      isSubmitting.value = true
-      try {
-        await emit('reviewed', status, reviewerNote.value)
-      } finally {
-        isSubmitting.value = false
-      }
-    }
-  })
+const roleName = computed(() =>
+  props.application?.project_role?.custom_title || props.application?.project_role?.contribution_role?.name || 'Kontributor'
+)
+const projectTitle = computed(() => props.application?.projects?.title || 'proyek ini')
+const statusConfig: Record<string, { label: string; classes: string }> = {
+  pending: { label: 'Menunggu', classes: 'bg-accent-50 text-accent-800 ring-accent-200' },
+  accepted: { label: 'Diterima', classes: 'bg-success-50 text-success-700 ring-success-200' },
+  rejected: { label: 'Ditolak', classes: 'bg-danger-50 text-danger-700 ring-danger-200' },
+  withdrawn: { label: 'Dibatalkan', classes: 'bg-neutral-100 text-neutral-600 ring-neutral-200' }
+}
+const availabilityLabels: Record<string, string> = {
+  flexible: 'Fleksibel',
+  full_time: 'Penuh waktu',
+  part_time: 'Paruh waktu',
+  weekends_only: 'Hanya akhir pekan'
 }
 
-const handleClose = () => {
+watch(() => props.modelValue, (open) => {
+  if (!open) {
+    reviewerNote.value = ''
+    decision.value = null
+  }
+})
+
+const close = () => {
   emit('update:modelValue', false)
   emit('close')
 }
-
-const availabilityLabels: Record<string, string> = {
-  flexible: 'Fleksibel',
-  full_time: 'Full Time',
-  part_time: 'Part Time',
-  weekends_only: 'Hanya Akhir Pekan'
+const openDecision = (status: 'accepted' | 'rejected') => {
+  reviewerNote.value = ''
+  decision.value = status
 }
-
-const statusConfig: Record<string, { label: string; classes: string }> = {
-  pending: {
-    label: 'Menunggu',
-    classes: 'bg-accent-50 text-accent-700 ring-accent-200'
-  },
-  accepted: {
-    label: 'Diterima',
-    classes: 'bg-success-50 text-success-700 ring-success-200'
-  },
-  rejected: {
-    label: 'Ditolak',
-    classes: 'bg-danger-50 text-danger-700 ring-danger-200'
-  },
-  withdrawn: {
-    label: 'Dibatalkan',
-    classes: 'bg-neutral-100 text-neutral-500 ring-neutral-200'
-  }
+const submitDecision = () => {
+  if (!decision.value || !props.application || props.submitting) return
+  const status = decision.value
+  emit('reviewed', status, reviewerNote.value.trim())
 }
+const formatDate = (value: string) => new Date(value).toLocaleDateString('id-ID', {
+  day: 'numeric', month: 'short', year: 'numeric'
+})
 </script>
 
 <template>
   <OrganismModal
-    :modelValue="modelValue"
-    @update:modelValue="(val) => emit('update:modelValue', val)"
-    title="Detail Pelamar"
-    size="xl"
-    @close="handleClose"
+    :model-value="modelValue"
+    :title="decision === 'accepted' ? 'Terima Kontributor?' : decision === 'rejected' ? 'Tolak Pengajuan?' : application ? 'Detail Pengajuan' : ''"
+    :subtitle="decision ? 'Konfirmasi keputusan' : application ? `Diajukan ${formatDate(application.applied_at)}` : ''"
+    size="md"
+    :mobile-fullscreen="true"
+    @update:model-value="emit('update:modelValue', $event)"
+    @close="close"
   >
-    <div v-if="application" class="space-y-6">
-      <!-- Status Badge (If not pending) -->
-      <div
-        v-if="application.status !== 'pending'"
-        class="flex items-center gap-3 rounded-xl border border-neutral-100 bg-neutral-50 p-4"
-      >
-        <div class="flex-1">
-          <p class="font-body-1 text-primary tracking-wider mb-1">
-            Status Lamaran
-          </p>
-          <span
-            :class="[
-              'inline-flex items-center rounded-full font-body-1 px-3 py-1 ring-1 ring-inset',
-              statusConfig[application.status]?.classes
-            ]"
-          >
-            {{ statusConfig[application.status]?.label }}
-          </span>
-        </div>
-        <div class="flex-1" v-if="application.reviewer_note">
-          <p
-            class="text-caption text-body text-neutral-500 uppercase tracking-wider mb-1"
-          >
-            Catatan Anda
-          </p>
-          <p class="text-sm font-medium text-secondary-900 line-clamp-2">
-            "{{ application.reviewer_note }}"
-          </p>
-        </div>
+    <div v-if="application && decision" class="space-y-4">
+      <p class="font-paragraph-3 text-secondary">
+        {{ decision === 'accepted' ? 'Kontributor akan bergabung sebagai anggota proyek dan mengisi satu slot posisi.' : 'Pengajuan pelamar akan ditolak. Kamu dapat menambahkan alasan atau masukan yang sopan.' }}
+      </p>
+      <div class="rounded-lg border border-neutral-200 p-3">
+        <p class="font-label-2 text-primary">{{ applicantName }}</p>
+        <p class="mt-0.5 font-body-3 text-secondary">{{ roleName }} · {{ projectTitle }}</p>
       </div>
-
-      <!-- Applicant Profile Summary -->
-      <div
-        class="flex items-center gap-4 rounded-xl border border-neutral-200 bg-white shadow-sm p-4"
-      >
-        <div
-          class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 text-title text-body text-primary-700 border-2 border-white shadow-sm"
-        >
-          {{
-            (
-              application.profiles?.full_name ||
-              application.profiles?.username ||
-              '?'
-            )
-              .charAt(0)
-              .toUpperCase()
-          }}
-        </div>
-        <div>
-          <h3 class="text-body text-body text-secondary-900">
-            {{
-              application.profiles?.full_name || application.profiles?.username
-            }}
-          </h3>
-          <p class="text-caption text-neutral-600">
-            {{ application.profiles?.headline || 'Talent Kolaboria' }}
-          </p>
-        </div>
-        <div class="ml-auto flex flex-col items-end">
-          <span class="text-[11px] text-body uppercase text-neutral-500"
-            >Completion Score</span
-          >
-          <span class="text-body font-bold text-success-600"
-            >{{ application.profiles?.completion_score }}%</span
-          >
-        </div>
-      </div>
-
-      <!-- Application Details -->
-      <div class="space-y-4">
-        <div class="rounded-lg border border-primary-100 bg-primary-50/50 p-4">
-          <h4 class="font-body-1 text-primary-700">Role yang Dilamar</h4>
-          <p class="mt-1 font-label-1 text-secondary-900">
-            {{
-              application.project_role?.custom_title ||
-              application.project_role?.contribution_role?.name ||
-              'Project Role'
-            }}
-          </p>
-          <p
-            v-if="application.estimated_hours_per_week"
-            class="mt-1 text-xs text-secondary"
-          >
-            Estimasi {{ application.estimated_hours_per_week }} jam/minggu
-          </p>
-        </div>
-        <div>
-          <h4 class="font-body-1">Motivasi</h4>
-          <p
-            class="mt-1 whitespace-pre-line text-body text-secondary-900 rounded-lg bg-neutral-50 border border-neutral-100 p-4"
-          >
-            {{ application.motivation }}
-          </p>
-        </div>
-
-        <div v-if="application.expected_contribution">
-          <h4 class="font-body-1">Ekspektasi Kontribusi</h4>
-          <p
-            class="mt-1 whitespace-pre-line text-body text-secondary-900 rounded-lg bg-neutral-50 border border-neutral-100 p-4"
-          >
-            {{ application.expected_contribution }}
-          </p>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <h4 class="font-body-1">Ketersediaan</h4>
-            <p
-              class="mt-1 text-body font-medium text-secondary-900 flex items-center gap-2"
-            >
-              <svg
-                class="w-4 h-4 text-neutral-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              {{ availabilityLabels[application.availability] }}
-            </p>
-          </div>
-          <div>
-            <h4 class="text-caption text-body uppercase text-neutral-500">
-              Portfolio Links
-            </h4>
-            <div
-              v-if="
-                application.portfolio_links &&
-                application.portfolio_links.length > 0
-              "
-              class="mt-1 flex flex-col gap-2"
-            >
-              <a
-                v-for="link in application.portfolio_links"
-                :key="link"
-                :href="link"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="truncate text-caption font-medium text-primary-600 hover:text-primary-800 hover:underline flex items-center gap-1.5 bg-primary-50 px-3 py-1.5 rounded-lg w-max"
-              >
-                <svg
-                  class="w-3.5 h-3.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-                {{ link.replace(/^https?:\/\//, '') }}
-              </a>
-            </div>
-            <p
-              v-else
-              class="mt-1 text-caption font-medium text-neutral-500 bg-neutral-50 px-3 py-1.5 rounded-lg w-max"
-            >
-              Tidak ada tautan portfolio
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Area (Only if pending) -->
-      <div
-        v-if="application.status === 'pending'"
-        class="border-t border-neutral-200 pt-5 mt-2"
-      >
-        <MoleculeTextarea
-          v-model="reviewerNote"
-          label="Catatan Reviewer"
-          rows="2"
-          placeholder="Berikan alasan atau pesan ke pelamar..."
-        />
-
-        <div class="mt-4 flex gap-3">
-          <AtomicButton
-            variant="outline"
-            class="flex-1"
-            :disabled="isSubmitting"
-            @click="handleReview('rejected')"
-          >
-            Tolak Lamaran
-          </AtomicButton>
-          <AtomicButton
-            variant="primary"
-            class="flex-1"
-            :disabled="isSubmitting"
-            @click="handleReview('accepted')"
-          >
-            Terima sebagai Kontributor
-          </AtomicButton>
-        </div>
-      </div>
+      <MoleculeTextarea
+        v-model="reviewerNote"
+        :label="decision === 'accepted' ? 'Catatan untuk pelamar (opsional)' : 'Catatan untuk pelamar (disarankan)'"
+        :placeholder="decision === 'accepted' ? 'Tulis pesan untuk pelamar...' : 'Tulis pesan yang jelas dan sopan...'"
+        :rows="4"
+        :disabled="submitting"
+      />
+      <p v-if="decision === 'accepted'" class="rounded-lg bg-accent-50 px-3 py-2.5 font-body-3 text-accent-900">Pastikan ketersediaan slot dan ekspektasi kontribusi sudah sesuai.</p>
     </div>
+
+    <div v-else-if="application" class="space-y-4">
+      <div class="flex items-center gap-3 border-b border-neutral-200 pb-4">
+        <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 font-label-2 text-primary-700">
+          <img v-if="application.profiles?.avatar" :src="application.profiles.avatar" :alt="`Foto ${applicantName}`" class="h-full w-full object-cover">
+          <span v-else>{{ applicantName.slice(0, 2).toLocaleUpperCase('id-ID') }}</span>
+        </div>
+        <div class="min-w-0">
+          <h2 class="truncate font-title-3 text-primary">{{ applicantName }}</h2>
+          <p class="mt-0.5 truncate font-body-3 text-secondary">{{ application.profiles?.headline || 'Talent Kolaboria' }}</p>
+          <span :class="['mt-1.5 inline-flex rounded-full px-2 py-0.5 font-label-3 ring-1 ring-inset', statusConfig[application.status]?.classes]">{{ statusConfig[application.status]?.label || application.status }}</span>
+        </div>
+      </div>
+
+      <dl class="grid grid-cols-2 gap-x-4 gap-y-3 border-b border-neutral-200 pb-4">
+        <div><dt class="font-body-3 text-neutral-500">Posisi yang diajukan</dt><dd class="mt-0.5 font-label-2 text-primary">{{ roleName }}</dd></div>
+        <div><dt class="font-body-3 text-neutral-500">Ketersediaan</dt><dd class="mt-0.5 font-label-2 text-primary">{{ availabilityLabels[application.availability] || application.availability }}</dd></div>
+        <div><dt class="font-body-3 text-neutral-500">Slot posisi</dt><dd class="mt-0.5 font-label-2 text-primary">{{ application.project_role?.filled_capacity ?? 0 }} dari {{ application.project_role?.capacity ?? 0 }} terisi</dd></div>
+        <div><dt class="font-body-3 text-neutral-500">Tanggal pengajuan</dt><dd class="mt-0.5 font-label-2 text-primary">{{ formatDate(application.applied_at) }}</dd></div>
+      </dl>
+
+      <section class="border-b border-neutral-200 pb-4">
+        <h3 class="font-label-2 text-primary">Motivasi Bergabung</h3>
+        <p class="mt-1.5 whitespace-pre-line font-paragraph-3 text-secondary">{{ application.motivation || 'Tidak ada motivasi yang dicantumkan.' }}</p>
+      </section>
+      <section v-if="application.expected_contribution" class="border-b border-neutral-200 pb-4">
+        <h3 class="font-label-2 text-primary">Kontribusi yang Ditawarkan</h3>
+        <p class="mt-1.5 whitespace-pre-line font-paragraph-3 text-secondary">{{ application.expected_contribution }}</p>
+      </section>
+      <section class="border-b border-neutral-200 pb-4">
+        <h3 class="font-label-2 text-primary">Keahlian &amp; tools posisi</h3>
+        <div class="mt-2 flex flex-wrap gap-1.5">
+          <span v-for="skill in application.project_role?.skill_tags || []" :key="skill" class="rounded-md bg-neutral-100 px-2 py-1 font-body-3 text-neutral-600">{{ skill }}</span>
+          <span v-for="tool in application.project_role?.tools || []" :key="tool.id" class="rounded-md bg-neutral-100 px-2 py-1 font-body-3 text-neutral-600">{{ tool.name }}</span>
+          <span v-if="!application.project_role?.skill_tags?.length && !application.project_role?.tools?.length" class="font-body-3 text-neutral-500">Belum ada keahlian atau tools posisi.</span>
+        </div>
+      </section>
+      <section>
+        <h3 class="font-label-2 text-primary">Portofolio</h3>
+        <div v-if="application.portfolio_links?.length" class="mt-2 space-y-2">
+          <a v-for="link in application.portfolio_links" :key="link" :href="link" target="_blank" rel="noopener noreferrer" class="block truncate rounded-lg border border-neutral-200 px-3 py-2.5 font-body-3 text-primary-700 hover:border-primary-300 hover:text-primary-800">{{ link }} <Icon name="lucide:external-link" class="inline h-3.5 w-3.5" aria-hidden="true" /></a>
+        </div>
+        <p v-else class="mt-1.5 font-paragraph-3 text-secondary">Belum ada tautan portofolio.</p>
+      </section>
+      <p v-if="application.reviewer_note" class="rounded-lg bg-neutral-50 p-3 font-paragraph-3 text-secondary">Catatan sebelumnya: {{ application.reviewer_note }}</p>
+    </div>
+
+    <template #footer>
+      <div v-if="decision" class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <AtomicButton variant="outline" class="w-full sm:w-auto" :disabled="submitting" @click="decision = null">Kembali</AtomicButton>
+        <AtomicButton :variant="decision === 'accepted' ? 'primary' : 'outline-danger'" class="w-full sm:w-auto" :class="decision === 'accepted' ? 'bg-primary-600! hover:bg-primary-700!' : ''" :loading="submitting" @click="submitDecision">{{ decision === 'accepted' ? 'Ya, Terima' : 'Ya, Tolak' }}</AtomicButton>
+      </div>
+      <div v-else-if="application?.status === 'pending'" class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <AtomicButton variant="outline-danger" class="w-full sm:w-auto" :disabled="submitting" @click="openDecision('rejected')">Tolak Pengajuan</AtomicButton>
+        <AtomicButton variant="primary" class="w-full sm:w-auto bg-primary-600! hover:bg-primary-700!" :disabled="submitting" @click="openDecision('accepted')">Terima Kontributor</AtomicButton>
+      </div>
+      <div v-else class="flex w-full justify-end">
+        <AtomicButton variant="outline" class="w-full sm:w-auto" @click="close">Tutup</AtomicButton>
+      </div>
+    </template>
   </OrganismModal>
 </template>

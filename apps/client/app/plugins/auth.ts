@@ -11,6 +11,9 @@ export default defineNuxtPlugin(async () => {
   // Public profile routes stay anonymous; the API does not expose a public profile endpoint yet.
   if (isProfileOverview) return
 
+  // Applicant management uses local demo fixtures until API integration is requested.
+  if (/^\/projects\/[^/]+\/applicants\/?$/.test(currentPath)) return
+
   // The create route hydrates through its guards and retryable account loader.
   if (/^\/projects\/create\/?$/.test(currentPath)) return
 

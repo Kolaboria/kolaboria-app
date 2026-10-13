@@ -24,6 +24,9 @@ const mobileBottomNavItems = [
 const normalizedRoutePath = computed(
   () => route.path.replace(/\/+$/, '') || '/'
 )
+const isApplicantSimulationRoute = computed(() =>
+  /^\/projects\/[^/]+\/applicants\/?$/.test(route.path)
+)
 const profileEditPageMeta = computed(() => getProfileEditPageMeta(route.path))
 const isProfileEditRoute = computed(() => profileEditPageMeta.value !== null)
 const isMobileBottomNavRoute = computed(() =>
@@ -46,7 +49,7 @@ const loadNavbarProfile = async () => {
   const shouldLoadForCurrentRoute =
     !mobileNavbar.value || desktopMediaQuery?.matches === true
 
-  if (user.value && !isProfileOverview && shouldLoadForCurrentRoute) {
+  if (user.value && !isProfileOverview && !isApplicantSimulationRoute.value && shouldLoadForCurrentRoute) {
     userProfile.value = await getProfile()
   }
 }

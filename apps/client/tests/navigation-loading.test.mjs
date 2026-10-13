@@ -68,11 +68,11 @@ test('my-projects displays its first batch before subsequent summary pages finis
   const restore = installNuxtBoundary()
   const gate = deferred()
   const original = ProjectService.getMyProjectSummaries
-  ProjectService.getMyProjectSummaries = async (scope, { page }) => {
+  ProjectService.getMyProjectSummaries = async ({ page }) => {
     if (page === 2) await gate.promise
     return {
       status: 200, message: 'ok',
-      data: [{ id: `${scope}-${page}`, slug: `${scope}-${page}`, status: 'draft' }],
+      data: [{ id: `project-${page}`, slug: `project-${page}`, status: 'draft', my_scope: 'owned', roles: [] }],
       meta: { page, limit: 100, total: 101, total_pages: 2 }
     }
   }
@@ -84,10 +84,13 @@ test('my-projects displays its first batch before subsequent summary pages finis
     await settle()
     assert.ok(mounted.bindings, 'project list must not wait for every summary page')
     assert.equal(mounted.bindings.pending.value, false)
-    assert.deepEqual(mounted.bindings.projects.value.map(p => p.id).sort(), ['initiated-1', 'owned-1'])
+    assert.deepEqual(mounted.bindings.projects.value.map(p => p.id), ['project-1'])
+    assert.equal(mounted.bindings.activeProjectsCount.value, null, 'summary must not present a partial first-page total')
     gate.resolve()
     await settle()
-    assert.equal(mounted.bindings.projects.value.length, 4)
+    assert.equal(mounted.bindings.projects.value.length, 2)
+    assert.equal(mounted.bindings.activeProjectsCount.value, 0)
+    assert.equal(mounted.bindings.draftProjectsCount.value, 2)
   } finally {
     gate.resolve()
     await settle()
@@ -108,22 +111,22 @@ function mountPage(Page, provides = []) {
   return { get bindings() { if (failure) throw failure; return bindings }, unmount: mounted.unmount }
 }
 
-test('progressive batches do not repeat still-pending project detail requests', async () => {
+test('my-project summaries provide card data without per-project detail requests', async () => {
   const restore = installNuxtBoundary()
   const gate = deferred()
   const originalList = ProjectService.getMyProjectSummaries
   const originalDetail = ProjectService.getProjectBySlug
   const detailRequests = []
-  ProjectService.getMyProjectSummaries = async (scope, { page }) => ({
-    status: 200, data: scope === 'owned' ? [{ id: `project-${page}`, slug: `project-${page}`, status: 'draft' }] : [],
-    meta: { page, limit: 100, total: 101, total_pages: scope === 'owned' ? 2 : 1 }
+  ProjectService.getMyProjectSummaries = async ({ page }) => ({
+    status: 200, data: [{ id: `project-${page}`, slug: `project-${page}`, status: 'draft', my_scope: 'owned', roles: [] }],
+    meta: { page, limit: 100, total: 101, total_pages: 2 }
   })
   ProjectService.getProjectBySlug = slug => { detailRequests.push(slug); return gate.promise }
   const { default: Page } = await import('../app/components/project/MyProjectsView.vue')
   const mounted = mountPage(Page)
   try {
     await settle()
-    assert.deepEqual(detailRequests.sort(), ['project-1', 'project-2'])
+    assert.deepEqual(detailRequests, [])
   } finally {
     gate.resolve({ status: 200, data: { project_roles: [] } })
     await settle()

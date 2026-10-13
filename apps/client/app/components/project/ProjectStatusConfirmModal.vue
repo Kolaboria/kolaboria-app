@@ -5,7 +5,7 @@ const props = defineProps<{
   show: boolean
   action: 'open' | 'archived' | 'completed' | 'in_progress'
   projectTitle: string
-  hasActiveApplicants?: boolean
+  hasActiveApplicants?: boolean | null
   deliverableCount?: number
 }>()
 
@@ -43,9 +43,11 @@ const modalContent = computed(() => {
     case 'archived':
       return {
         title: 'Arsipkan Project?',
-        message: props.hasActiveApplicants
-          ? 'Project akan disembunyikan. Peringatan: Ada pelamar aktif yang lamarannya akan dibatalkan.'
-          : 'Project akan disembunyikan dari publik. Kamu tetap bisa melihatnya di daftar project.',
+        message: props.hasActiveApplicants == null
+          ? 'Status lamaran aktif belum dapat dipastikan. Pastikan tidak ada lamaran yang perlu ditinjau sebelum mengarsipkan proyek.'
+          : props.hasActiveApplicants
+            ? 'Project akan disembunyikan. Peringatan: Ada pelamar aktif yang lamarannya akan dibatalkan.'
+            : 'Project akan disembunyikan dari publik. Kamu tetap bisa melihatnya di daftar project.',
         confirmText: 'Ya, Arsipkan',
         confirmVariant: 'danger' as const
       }

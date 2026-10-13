@@ -34,22 +34,18 @@ test('public project discovery consumes every API summary page', async () => {
   }
 })
 
-test('my-project lists consume all owned and initiated pages before deduplicating', async () => {
+test('my-project lists consume all pages from the combined scope', async () => {
   const original = ProjectService.getMyProjectSummaries
   const requested = []
-  const data = {
-    owned: [['owned-1', 'shared'], ['owned-2']],
-    initiated: [['shared', 'initiated-1'], ['initiated-2']]
-  }
-  ProjectService.getMyProjectSummaries = async (scope, { page } = {}) => {
-    requested.push(`${scope}:${page}`)
-    return paged(data[scope][page - 1] ?? [], page, 2)
+  const data = [['owned-1', 'initiated-1'], ['owned-2', 'initiated-2']]
+  ProjectService.getMyProjectSummaries = async ({ page } = {}) => {
+    requested.push(page)
+    return paged(data[page - 1] ?? [], page, 2)
   }
   try {
     const projects = await useProjects().getMyProjectSummaries()
-    assert.deepEqual(projects.map(project => project.id).sort(), ['initiated-1', 'initiated-2', 'owned-1', 'owned-2', 'shared'])
-    assert.deepEqual(requested.sort(), ['initiated:1', 'initiated:2', 'owned:1', 'owned:2'])
-    assert.equal(projects.find(project => project.id === 'shared').my_scope, 'owned')
+    assert.deepEqual(projects.map(project => project.id).sort(), ['initiated-1', 'initiated-2', 'owned-1', 'owned-2'])
+    assert.deepEqual(requested, [1, 2])
   } finally {
     ProjectService.getMyProjectSummaries = original
   }

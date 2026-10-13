@@ -394,7 +394,7 @@
                     </AtomicButton>
                   </template>
 
-                  <template v-else>
+                  <template v-else-if="!isProjectOwner">
                     <MoleculeTicker
                       :variant="applicationUnavailableVariant"
                       :title="applicationUnavailableTitle"
@@ -537,6 +537,8 @@ import {
   getProjectContributorOutcome,
   getProjectContributionAvailabilityMessage,
   getProjectApplicationStatusCopy,
+  getProjectApplicationUnavailableTitle,
+  getProjectOwnerAttribution,
   isProjectDefinitionEditableBy,
   toProjectDetailView
 } from '~/utils/project-presentation'
@@ -693,8 +695,9 @@ const creatorInitial = computed(() => {
 const creatorAvatar = computed(
   () => project.value?.owner_profile?.avatar ?? null
 )
-const creatorAttribution = computed(() =>
-  project.value?.owner_id ? 'Project Lead' : 'Kepemilikan belum ditetapkan'
+const creatorAttribution = computed(() => project.value
+  ? getProjectOwnerAttribution(project.value)
+  : 'Kepemilikan belum ditetapkan'
 )
 const isCreatorVerified = computed(
   () => project.value?.owner_profile?.is_verified ?? false
@@ -856,8 +859,13 @@ const transparencyItems = computed(() =>
 const applicationStatusCopy = computed(() =>
   getProjectApplicationStatusCopy(project.value?.viewer_application?.status)
 )
-const applicationUnavailableTitle = computed(
-  () => applicationStatusCopy.value?.title ?? 'Lamaran belum tersedia'
+const applicationUnavailableTitle = computed(() =>
+  getProjectApplicationUnavailableTitle({
+    projectStatus: project.value?.status,
+    applicationStatus: project.value?.viewer_application?.status,
+    isProjectOwner: isProjectOwner.value,
+    isInitiatorOrganizationAdmin: isInitiatorOrganizationAdmin.value
+  })
 )
 const applicationUnavailableMessage = computed(() => {
   if (applicationStatusCopy.value) return applicationStatusCopy.value.message

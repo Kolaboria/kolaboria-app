@@ -1,430 +1,600 @@
 <template>
-  <div class="overflow-x-hidden">
-    <!-- Hero Section (Premium Layout - matching Home) -->
-    <div
-      class="relative rounded-3xl overflow-hidden mb-10 bg-primary-500 shadow-xl border border-primary-400/30"
-    >
-      <!-- Aurora Background Effects -->
-      <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div class="k-aurora-1 opacity-60 mix-blend-overlay"></div>
-        <div class="k-aurora-2 opacity-50 mix-blend-overlay"></div>
-      </div>
+  <div class="mx-auto w-full pb-16">
+    <!-- ─── PAGE HEADER ─── -->
+    <header class="flex flex-col gap-1 sm:gap-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <p
+            class="font-label-3 text-xs font-bold uppercase tracking-wider text-primary-600"
+          >
+            AKTIVITAS KONTRIBUSI
+          </p>
+          <h1
+            class="mt-1 font-title-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl"
+          >
+            Pengajuan Saya
+          </h1>
+          <p class="mt-1 font-paragraph-3 text-neutral-500 max-w-2xl leading-relaxed">
+            Pantau pengajuanmu, lihat keputusan pemilik proyek, dan lanjutkan kolaborasi ketika diterima.
+          </p>
+        </div>
 
-      <!-- Detail Subtle Graphic Grid -->
-      <div
-        class="absolute inset-0 pointer-events-none mix-blend-overlay"
-        style="
-          background-image:
-            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(
-              90deg,
-              rgba(255, 255, 255, 0.05) 1px,
-              transparent 1px
-            );
-          background-size: 64px 64px;
-        "
-        aria-hidden="true"
-      ></div>
-
-      <div
-        class="relative z-10 p-8 md:p-12 text-white flex flex-col items-start pl-8 md:pl-14 border-l-[3px] border-white/20 ml-4 md:ml-8 my-8"
-      >
-        <h1
-          class="text-3xl md:text-[2.75rem] font-black mb-5 leading-[1.15] tracking-tight drop-shadow-sm"
-        >
-          Lamaran Saya
-        </h1>
-        <p class="font-paragraph-1 text-white max-w-2xl leading-[1.7] mb-0">
-          Pantau dan kelola seluruh perjalanan aplikasi proyekmu dengan mudah di
-          satu tempat.
-        </p>
+        <div class="shrink-0">
+          <NuxtLink to="/projects">
+            <AtomicButton
+              variant="primary"
+              size="sm"
+              class="w-full sm:w-auto font-semibold shadow-xs"
+            >
+              Jelajahi Proyek
+              <template #icon-right>
+                <Icon name="lucide:arrow-right" class="w-4 h-4 ml-1.5" />
+              </template>
+            </AtomicButton>
+          </NuxtLink>
+        </div>
       </div>
-    </div>
+    </header>
 
     <!-- ─── MAIN CONTENT ─── -->
-    <main>
+    <main class="mt-8">
       <!-- Loading State -->
-      <OrganismAsyncContent :pending="pending" :ready="Boolean(applications)" label="Memuat lamaran...">
+      <OrganismAsyncContent
+        :pending="pending"
+        :ready="Boolean(applications)"
+        label="Memuat pengajuan..."
+      >
+        <!-- Error State -->
+        <MoleculeTicker
+          v-if="error"
+          variant="danger"
+          :message="getApiErrorMessage(error)"
+          :closable="false"
+        />
 
-      <!-- Error State -->
-      <MoleculeTicker
-        v-if="error"
-        variant="danger"
-        :message="getApiErrorMessage(error)"
-        :closable="false"
-      />
-
-      <template v-else-if="applications">
-        <!-- ─── STATISTICS ─── -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
-          <!-- Total -->
-          <div
-            class="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-center relative overflow-hidden group hover:border-gray-200 transition-colors"
-          >
+        <template v-else-if="applications">
+          <!-- ─── STATS SUMMARY (4 CARDS) ─── -->
+          <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+            <!-- 1. Total Pengajuan -->
             <div
-              class="absolute right-0 top-0 w-24 h-24 bg-gray-50 rounded-full translate-x-1/3 -translate-y-1/3 transition-transform group-hover:scale-110"
-            ></div>
-            <h3 class="font-body-1 tracking-wider mb-2 relative z-10">
-              Total Terkirim
-            </h3>
-            <div class="flex items-end gap-3 relative z-10">
-              <span class="text-4xl font-black text-gray-900 leading-none">
-                {{ userStats.total }}</span
-              >
-              <span class="font-label-1 text-gray-500 mb-1">Lamaran</span>
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+            >
+              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+                Total Pengajuan
+              </p>
+              <p class="font-title-1 text-xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
+                {{ userStats.total }}
+              </p>
+              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+                Seluruh riwayat
+              </p>
             </div>
-          </div>
 
-          <!-- Pending -->
-          <div
-            class="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-center relative overflow-hidden group hover:border-amber-100 transition-colors"
-          >
+            <!-- 2. Menunggu -->
             <div
-              class="absolute right-0 top-0 w-24 h-24 bg-amber-50 rounded-full translate-x-1/3 -translate-y-1/3 transition-transform group-hover:scale-110"
-            ></div>
-            <h3 class="font-body-1 text-amber-500/70 mb-2 relative z-10">
-              Menunggu Review
-            </h3>
-            <div class="flex items-end gap-3 relative z-10">
-              <span class="text-4xl font-black text-amber-600 leading-none">
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+            >
+              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+                Menunggu
+              </p>
+              <p class="font-title-1 text-xl sm:text-3xl font-bold text-accent-600 mt-1 sm:mt-2">
                 {{ userStats.pending }}
-              </span>
-              <span class="font-label-1 text-amber-500 mb-1">Proses</span>
+              </p>
+              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+                Perlu keputusan
+              </p>
             </div>
-          </div>
 
-          <!-- Accepted -->
-          <div
-            class="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-center relative overflow-hidden group hover:border-emerald-100 transition-colors"
-          >
+            <!-- 3. Diterima -->
             <div
-              class="absolute right-0 top-0 w-24 h-24 bg-emerald-50 rounded-full translate-x-1/3 -translate-y-1/3 transition-transform group-hover:scale-110"
-            ></div>
-            <h3 class="font-body-1 text-emerald-500/70 mb-2 relative z-10">
-              Diterima
-            </h3>
-            <div class="flex items-end gap-3 relative z-10">
-              <span class="text-4xl font-black text-emerald-600 leading-none">
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+            >
+              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+                Diterima
+              </p>
+              <p class="font-title-1 text-xl sm:text-3xl font-bold text-success-600 mt-1 sm:mt-2">
                 {{ userStats.accepted }}
-              </span>
-              <span class="font-label-1 text-emerald-500 mb-1"> Sukses </span>
+              </p>
+              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+                Siap berkolaborasi
+              </p>
+            </div>
+
+            <!-- 4. Ditolak -->
+            <div
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+            >
+              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+                Ditolak
+              </p>
+              <p class="font-title-1 text-xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
+                {{ userStats.rejected }}
+              </p>
+              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+                Belum dilanjutkan
+              </p>
             </div>
           </div>
-        </div>
 
-        <!-- ─── FILTERS ─── -->
-        <div
-          class="flex items-center gap-2 mb-8 overflow-x-auto pb-2 hide-scrollbar"
-        >
-          <button
-            v-for="filter in filters"
-            :key="filter.value"
-            @click="selectedFilter = filter.value"
-            :class="[
-              'px-5 py-2 rounded-full text-sm font-bold tracking-wide transition-all whitespace-nowrap outline-none flex items-center justify-center min-w-[max-content]',
-              selectedFilter === filter.value
-                ? 'bg-gray-900 text-white shadow-md'
-                : 'bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300'
-            ]"
-          >
-            {{ filter.label }}
-          </button>
-        </div>
+          <!-- ─── RIWAYAT PENGAJUAN SECTION ─── -->
+          <section aria-label="Riwayat Pengajuan">
+            <div class="mb-5">
+              <h2 class="font-title-2 font-bold text-neutral-900 mb-1">
+                Riwayat Pengajuan
+              </h2>
+              <p class="font-paragraph-3 text-neutral-500">
+                Semua proyek yang pernah kamu ajukan untuk berkontribusi.
+              </p>
+            </div>
 
-        <!-- ─── APPLICATIONS TIMELINE LIST ─── -->
-        <div v-if="filteredApplications.length > 0" class="space-y-6">
-          <div
-            v-for="app in filteredApplications"
-            :key="app.id"
-            class="relative group/timeline"
-          >
-            <div class="flex gap-4 md:gap-6">
-              <!-- Application Card -->
-              <div
-                class="flex-1 bg-white rounded-2xl max-w-full border border-gray-100 shadow-sm p-5 md:p-6 hover:border-primary-200 hover:shadow-md transition-all duration-300"
+            <div class="flex flex-col items-start gap-6 lg:flex-row lg:gap-8">
+              <aside class="hidden w-64 shrink-0 space-y-5 self-start rounded-xl border border-neutral-200 bg-white p-5 lg:sticky lg:top-20 lg:block" aria-label="Filter riwayat pengajuan">
+                <div class="flex items-center justify-between border-b border-neutral-100 pb-3">
+                  <div class="flex items-center gap-2">
+                    <SlidersHorizontal class="h-4 w-4 text-neutral-600" aria-hidden="true" />
+                    <span class="font-label-1 font-bold text-primary">Filter</span>
+                    <span v-if="activeFilterCount" class="rounded-full bg-primary-50 px-2 py-0.5 font-body-3 font-semibold text-primary-700">{{ activeFilterCount }}</span>
+                  </div>
+                  <button v-if="activeFilterCount" type="button" class="font-body-3 text-neutral-500 transition-colors hover:text-primary-700" @click="resetFilters">Reset</button>
+                </div>
+
+                <div>
+                  <h3 class="mb-3 font-label-2 font-bold text-primary">Status pengajuan</h3>
+                  <div class="flex flex-col gap-2.5">
+                    <AtomicCheckbox label="Semua status" :model-value="isAllStatusesSelected" @update:model-value="toggleAllStatuses" />
+                    <AtomicCheckbox v-for="option in statusOptions" :key="option.value" :label="`${option.label} (${userStats[option.value]})`" :model-value="selectedStatuses.includes(option.value)" @update:model-value="() => toggleStatus(option.value)" />
+                  </div>
+                </div>
+
+                <div class="border-b border-neutral-100" />
+
+                <div>
+                  <h3 class="mb-3 font-label-2 font-bold text-primary">Konteks proyek</h3>
+                  <div class="flex flex-col gap-2.5">
+                    <AtomicCheckbox label="Semua konteks" :model-value="isAllContextsSelected" @update:model-value="toggleAllContexts" />
+                    <AtomicCheckbox v-for="context in projectContexts" :key="context" :label="context" :model-value="selectedContexts.includes(context)" @update:model-value="() => toggleContext(context)" />
+                  </div>
+                </div>
+              </aside>
+
+              <div class="min-w-0 w-full flex-1">
+                <div class="mb-4 hidden items-center justify-between gap-4 lg:flex">
+                  <p class="font-body-2 text-secondary">Menampilkan <strong>{{ filteredApplications.length }}</strong> pengajuan</p>
+                  <div class="w-48 shrink-0"><MoleculeDropdown v-model="selectedSort" :options="sortOptions" /></div>
+                </div>
+
+                <div class="mb-4 block lg:hidden">
+                  <p class="mb-3 font-body-2 text-secondary">Menampilkan {{ currentDisplayedCount }} dari {{ filteredApplications.length }} pengajuan</p>
+                  <div class="-mx-1 flex items-center gap-2 overflow-x-auto px-1 py-2 scrollbar-none">
+                    <button type="button" class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50" aria-label="Buka semua filter" @click="isMobileFilterOpen = true">
+                      <Funnel class="h-4.5 w-4.5" aria-hidden="true" />
+                      <span v-if="activeFilterCount" class="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary-600 px-1 font-body-3 text-white ring-2 ring-white">{{ activeFilterCount }}</span>
+                    </button>
+                    <button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors" :class="selectedSort !== 'newest' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'" aria-label="Urutkan pengajuan" @click="isMobileSortOpen = true">
+                      <ArrowDownUp class="h-4.5 w-4.5" aria-hidden="true" />
+                    </button>
+                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 transition-colors" :class="selectedStatuses.length ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileStatusFilterOpen = true">
+                      {{ statusFilterLabel }}<ChevronDown class="h-3.5 w-3.5 text-neutral-500" aria-hidden="true" />
+                    </button>
+                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 transition-colors" :class="selectedContexts.length ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileContextFilterOpen = true">
+                      {{ contextFilterLabel }}<ChevronDown class="h-3.5 w-3.5 text-neutral-500" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <MoleculeSearchField v-model="searchQuery" placeholder="Cari proyek atau posisi..." aria-label="Cari proyek atau posisi" />
+                </div>
+
+            <!-- Cards Grid -->
+            <div
+              v-if="displayedApplications.length > 0"
+              class="grid grid-cols-1 gap-4 sm:gap-5 mb-8"
+            >
+              <article
+                v-for="app in displayedApplications"
+                :key="app.id"
+                class="bg-white rounded-2xl border border-neutral-200/90 p-5 sm:p-6 shadow-2xs hover:border-neutral-300 transition-all flex flex-col justify-between"
               >
-                <div
-                  class="flex flex-col md:flex-row md:items-start justify-between gap-5 mb-5 border-b border-gray-50 pb-5"
-                >
-                  <div class="flex items-start gap-4 flex-1 min-w-0">
-                    <!-- Partner Initial / Icon -->
+                <div>
+                  <!-- Card Header: Monogram Avatar & Title -->
+                  <div class="flex items-start gap-3.5">
                     <div
-                      class="w-12 h-12 rounded-[10px] flex items-center justify-center text-xl font-bold shrink-0 text-white shadow-sm"
-                      :class="getProjectColorClass(app.status)"
+                      class="w-11 h-11 rounded-xl bg-primary-50 border border-primary-100 text-primary-700 font-bold flex items-center justify-center text-sm shrink-0"
                     >
-                      {{ getProjectIcon(app.projects?.title) }}
+                      {{ getMonogram(app.projects?.title) }}
                     </div>
 
-                    <div class="min-w-0">
+                    <div class="min-w-0 flex-1">
+                      <NuxtLink
+                        v-if="app.projects?.slug"
+                        :to="`/projects/${app.projects.slug}`"
+                        class="font-title-3 font-bold text-neutral-900 hover:text-primary-600 transition-colors line-clamp-1"
+                      >
+                        {{ app.projects.title }}
+                      </NuxtLink>
                       <h3
-                        class="font-title-2 text-gray-900 mb-1 truncate group-hover/timeline:text-primary-600 transition-colors"
+                        v-else
+                        class="font-title-3 font-bold text-neutral-900 truncate"
                       >
-                        {{ app.projects?.title ?? 'Project Tidak Tersedia' }}
+                        {{ app.projects?.title ?? 'Proyek Tidak Tersedia' }}
                       </h3>
-                      <p class="font-label-2 text-gray-400 mt-1.5">
-                        Diajukan {{ relativeDate(app.applied_at) }}
-                      </p>
-                      <p class="font-label-2 text-primary-600 mt-1">
-                        Peran:
-                        {{
-                          app.project_role?.custom_title ||
-                          app.project_role?.contribution_role?.name ||
-                          'Project Role'
-                        }}
+
+                      <p class="font-body-3 text-neutral-500 mt-0.5 truncate">
+                        Oleh {{ getAuthorName(app) }} · {{ getProjectContext(app) }}
                       </p>
                     </div>
                   </div>
 
-                  <div class="shrink-0 flex items-center">
-                    <AtomicTag
-                      v-if="statusConfig[app.status]"
-                      :variant="getTagVariant(app.status)"
+                  <!-- Badges Row -->
+                  <div class="flex flex-wrap items-center gap-2 mt-3.5">
+                    <span
+                      class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-neutral-100 text-neutral-700"
                     >
-                      {{ statusConfig[app.status]?.label }}
-                    </AtomicTag>
-                  </div>
-                </div>
-
-                <!-- Application Details Summary -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                  <!-- Motivation -->
-                  <div>
-                    <p class="font-label-1 mb-2">Motivasi</p>
-                    <p class="font-body-2 text-secondary italic line-clamp-2">
-                      "{{
-                        app.motivation.length > 120
-                          ? app.motivation.substring(0, 120) + '...'
-                          : app.motivation
-                      }}"
-                    </p>
-                  </div>
-                  <!-- Availability -->
-                  <div>
-                    <p class="font-label-1 mb-2">Ketersediaan</p>
-                    <p class="font-body-2 text-secondary">
-                      {{
-                        availabilityLabel[app.availability] || app.availability
-                      }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Message Section (if Accepted) -->
-                <!-- Accepted + Project In Progress → CTA ke Workspace -->
-                <div
-                  v-if="
-                    app.status === 'accepted' &&
-                    app.projects?.status === 'in_progress'
-                  "
-                  class="mb-6 bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div class="flex gap-3 items-center">
-                    <svg
-                      class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
+                      {{ getRoleName(app) }}
+                    </span>
+                    <span
+                      :class="getStatusBadgeClass(app.status)"
+                      class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold"
                     >
-                      <path
-                        fill-rule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                        clip-rule="evenodd"
-                      />
-                    </svg>
-                    <div>
-                      <h4 class="font-label-1 text-emerald-800 mb-1">
-                        Kamu bagian dari tim ini!
-                      </h4>
-                      <p
-                        class="font-body-2 text-emerald-600/90 leading-relaxed"
-                      >
-                        Project sedang berjalan. Buka workspace untuk melihat
-                        task dan berkolaborasi.
-                      </p>
-                    </div>
+                      {{ getStatusLabel(app.status) }}
+                    </span>
                   </div>
-                </div>
 
-                <!-- Accepted + Project masih Open → Menunggu owner start -->
-                <div
-                  v-else-if="
-                    app.status === 'accepted' && app.projects?.status === 'open'
-                  "
-                  class="items-center mb-6 bg-amber-50/60 border border-amber-100 rounded-xl p-4 flex gap-3"
-                >
-                  <svg
-                    class="w-5 h-5 text-amber-500 shrink-0 mt-0.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <div>
-                    <h4 class="font-label-1 text-amber-800 mb-1">
-                      Lamaran Diterima
-                    </h4>
-                    <p class="font-body-2 text-amber-700/80 leading-relaxed">
-                      Kamu sudah bergabung sebagai collaborator. Workspace akan
-                      aktif setelah owner memulai project.
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Accepted + status lain (completed/archived) -->
-                <div
-                  v-else-if="app.status === 'accepted'"
-                  class="items-center mb-6 bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex gap-3"
-                >
-                  <svg
-                    class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                  <div>
-                    <h4 class="font-label-1 text-emerald-800 mb-1">
-                      Lamaran Diterima!
-                    </h4>
-                    <p class="font-body-2 text-emerald-600/90 leading-relaxed">
-                      Keren, kamu berhasil masuk ke alur kolaborasi proyek ini!
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Message Section (Reviewer Note) -->
-                <div
-                  v-if="app.reviewer_note && app.status !== 'accepted'"
-                  class="mb-6 bg-gray-50 border border-gray-100 rounded-xl p-4"
-                >
-                  <h4 class="font-label-1 mb-2">Catatan Reviewer</h4>
-                  <p class="font-body-2 text-secondary">
-                    {{ app.reviewer_note }}
+                  <!-- Description -->
+                  <p class="font-body-2 text-neutral-600 mt-3 line-clamp-2 leading-relaxed">
+                    {{ app.projects?.summary || app.expected_contribution || app.motivation }}
                   </p>
+
+                  <!-- Status Message Callout Box -->
+                  <div
+                    v-if="app.status === 'pending'"
+                    class="bg-accent-50/70 border border-accent-100/80 rounded-xl p-3 text-accent-900 font-body-3 mt-3.5"
+                  >
+                    Menunggu keputusan Project Owner
+                  </div>
+                  <div
+                    v-else-if="app.status === 'accepted'"
+                    class="bg-success-50/70 border border-success-100/80 rounded-xl p-3 text-success-900 font-body-3 mt-3.5"
+                  >
+                    Lamaran diterima! Siap berkolaborasi.
+                  </div>
+                  <div
+                    v-else-if="app.status === 'rejected'"
+                    class="bg-danger-50/70 border border-danger-100/80 rounded-xl p-3 text-danger-900 font-body-3 mt-3.5"
+                  >
+                    Lamaran belum dilanjutkan. {{ app.reviewer_note ? `Catatan: ${app.reviewer_note}` : '' }}
+                  </div>
+                  <div
+                    v-else-if="app.status === 'withdrawn'"
+                    class="bg-neutral-50 border border-neutral-200/80 rounded-xl p-3 text-neutral-600 font-body-3 mt-3.5"
+                  >
+                    Pengajuan telah dibatalkan.
+                  </div>
                 </div>
 
-                <!-- Actions -->
-                <div class="flex items-center gap-3 flex-wrap">
-                  <!-- Open Workspace: primary CTA untuk collaborator saat project in_progress -->
-                  <NuxtLink
-                    v-if="
-                      app.status === 'accepted' &&
-                      app.projects?.status === 'in_progress' &&
-                      app.projects?.slug
+                <!-- Footer Divider & Actions -->
+                <div class="mt-4 pt-4 border-t border-neutral-100">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <span class="font-body-3 text-neutral-400">
+                      Diajukan {{ formatDate(app.applied_at) }}
+                    </span>
+
+                    <div class="flex items-center gap-2">
+                      <AtomicButton
+                        v-if="app.status === 'pending'"
+                        variant="outline-danger"
+                        size="sm"
+                        class="font-semibold text-xs! sm:text-sm!"
+                        :disabled="isWithdrawing"
+                        :loading="isWithdrawing"
+                        @click="handleWithdraw(app.id)"
+                      >
+                        Batalkan Pengajuan
+                      </AtomicButton>
+
+                      <AtomicButton
+                        variant="outline"
+                        size="sm"
+                        class="font-semibold text-xs! sm:text-sm! text-primary-700! border-primary-200! bg-primary-50/60! hover:bg-primary-100!"
+                        @click="openDetail(app)"
+                      >
+                        Lihat Pengajuan
+                        <template #icon-right>
+                          <Icon name="lucide:arrow-right" class="w-3.5 h-3.5 ml-1" />
+                        </template>
+                      </AtomicButton>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <!-- Mobile Endless Scrolling Sentinel -->
+            <div
+              v-if="!isDesktop && filteredApplications.length > 0"
+              class="w-full flex flex-col items-center"
+            >
+              <div
+                v-if="hasMoreMobile"
+                ref="sentinelRef"
+                class="h-8 w-full pointer-events-none"
+                aria-hidden="true"
+              />
+            </div>
+
+            <!-- Desktop Pagination (Hidden on mobile) -->
+            <div
+              v-if="filteredApplications.length > 0"
+              class="hidden lg:flex justify-end pt-4 border-t border-neutral-100"
+            >
+              <MoleculePagination
+                v-model="currentPage"
+                :total-pages="totalPages"
+                :total-items="filteredApplications.length"
+                :per-page="itemsPerPage"
+                align="end"
+              />
+            </div>
+
+                <!-- Empty State -->
+                <div
+                  v-if="filteredApplications.length === 0"
+                  class="py-16 flex flex-col items-center justify-center text-center px-4 bg-white border border-neutral-200/80 rounded-2xl shadow-2xs"
+                >
+                  <OrganismEmptyState
+                    icon="document"
+                    title="Belum ada pengajuan"
+                    :description="
+                      selectedStatuses.length === 0 && selectedContexts.length === 0 && !searchQuery
+                        ? 'Tampaknya kamu belum mengirimkan pengajuan ke proyek manapun. Mari jelajahi proyek baru!'
+                        : 'Tidak ada pengajuan yang cocok. Coba ubah kata kunci atau filter yang dipilih.'
                     "
-                    :to="`/projects/${app.projects.slug}/workspace`"
-                  >
-                    <AtomicButton variant="primary" size="sm" class="font-bold">
-                      Buka Workspace
-                    </AtomicButton>
-                  </NuxtLink>
-
-                  <!-- Detail Proyek: selalu tampil sebagai secondary -->
-                  <NuxtLink
-                    v-if="app.projects?.slug"
-                    :to="`/projects/${app.projects.slug}`"
-                  >
-                    <AtomicButton variant="outline" size="sm" class="font-bold">
-                      Detail Proyek
-                    </AtomicButton>
-                  </NuxtLink>
-
-                  <!-- Batalkan Lamaran: hanya untuk pending -->
-                  <AtomicButton
-                    v-if="app.status === 'pending'"
-                    variant="outline"
-                    size="sm"
-                    :loading="isWithdrawing"
-                    :disabled="isWithdrawing"
-                    @click="handleWithdraw(app.id)"
-                  >
-                    Batalkan Lamaran
-                  </AtomicButton>
+                    action="Jelajahi Proyek"
+                    @action="navigateTo('/projects')"
+                  />
                 </div>
               </div>
             </div>
+
+            <OrganismBottomSheet v-model="isMobileSortOpen" title="Urutkan Pengajuan" subtitle="Pilih urutan daftar pengajuan" primary-label="Terapkan" secondary-label="Reset" @primary="isMobileSortOpen = false" @secondary="selectedSort = 'newest'">
+              <div class="flex flex-col gap-4 py-2">
+                <AtomicRadio v-for="option in sortOptions" :key="option.value" v-model="selectedSort" :value="option.value" :label="option.label" name="my-applications-sort-option" />
+              </div>
+            </OrganismBottomSheet>
+
+            <OrganismBottomSheet v-model="isMobileFilterOpen" title="Filter Pengajuan" subtitle="Pilih status dan konteks proyek" primary-label="Terapkan" secondary-label="Reset Semua" @primary="isMobileFilterOpen = false" @secondary="resetFilters">
+              <div class="space-y-6 py-2">
+                <div>
+                  <h3 class="mb-3 font-label-1 font-bold text-primary">Status pengajuan</h3>
+                  <div class="flex flex-col gap-3">
+                    <AtomicCheckbox label="Semua status" :model-value="isAllStatusesSelected" @update:model-value="toggleAllStatuses" />
+                    <AtomicCheckbox v-for="option in statusOptions" :key="option.value" :label="`${option.label} (${userStats[option.value]})`" :model-value="selectedStatuses.includes(option.value)" @update:model-value="() => toggleStatus(option.value)" />
+                  </div>
+                </div>
+                <div class="border-b border-neutral-100" />
+                <div>
+                  <h3 class="mb-3 font-label-1 font-bold text-primary">Konteks proyek</h3>
+                  <div class="flex flex-col gap-3">
+                    <AtomicCheckbox label="Semua konteks" :model-value="isAllContextsSelected" @update:model-value="toggleAllContexts" />
+                    <AtomicCheckbox v-for="context in projectContexts" :key="context" :label="context" :model-value="selectedContexts.includes(context)" @update:model-value="() => toggleContext(context)" />
+                  </div>
+                </div>
+              </div>
+            </OrganismBottomSheet>
+
+            <OrganismBottomSheet v-model="isMobileStatusFilterOpen" title="Status Pengajuan" subtitle="Pilih satu atau beberapa status" primary-label="Terapkan" secondary-label="Reset" @primary="isMobileStatusFilterOpen = false" @secondary="toggleAllStatuses(true)">
+              <div class="flex flex-col gap-3.5 py-2">
+                <AtomicCheckbox label="Semua status" :model-value="isAllStatusesSelected" @update:model-value="toggleAllStatuses" />
+                <AtomicCheckbox v-for="option in statusOptions" :key="option.value" :label="`${option.label} (${userStats[option.value]})`" :model-value="selectedStatuses.includes(option.value)" @update:model-value="() => toggleStatus(option.value)" />
+              </div>
+            </OrganismBottomSheet>
+
+            <OrganismBottomSheet v-model="isMobileContextFilterOpen" title="Konteks Proyek" subtitle="Pilih konteks proyek yang pernah diajukan" primary-label="Terapkan" secondary-label="Reset" @primary="isMobileContextFilterOpen = false" @secondary="toggleAllContexts(true)">
+              <div class="flex flex-col gap-3.5 py-2">
+                <AtomicCheckbox label="Semua konteks" :model-value="isAllContextsSelected" @update:model-value="toggleAllContexts" />
+                <AtomicCheckbox v-for="context in projectContexts" :key="context" :label="context" :model-value="selectedContexts.includes(context)" @update:model-value="() => toggleContext(context)" />
+              </div>
+            </OrganismBottomSheet>
+          </section>
+        </template>
+      </OrganismAsyncContent>
+    </main>
+
+    <!-- ─── DETAIL MODAL / BOTTOM SHEET ─── -->
+    <OrganismModal
+      v-model="isDetailModalOpen"
+      title="Detail Pengajuan"
+      :subtitle="selectedApp?.applied_at ? `Diajukan ${formatDate(selectedApp.applied_at)}` : ''"
+      size="lg"
+      @close="closeDetail"
+    >
+      <div v-if="selectedApp" class="space-y-5">
+        <!-- Project Summary Row -->
+        <div class="flex items-start gap-3.5">
+          <div
+            class="w-12 h-12 rounded-xl bg-primary-50 border border-primary-100 text-primary-700 font-bold flex items-center justify-center text-base shrink-0"
+          >
+            {{ getMonogram(selectedApp.projects?.title) }}
+          </div>
+
+          <div class="min-w-0 flex-1">
+            <h3 class="font-title-2 font-bold text-neutral-900 leading-snug">
+              {{ selectedApp.projects?.title }}
+            </h3>
+            <p class="font-body-3 text-neutral-500 mt-0.5">
+              Oleh {{ getAuthorName(selectedApp) }} · {{ getProjectContext(selectedApp) }}
+            </p>
+            <div class="mt-2">
+              <span
+                :class="getStatusBadgeClass(selectedApp.status)"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold"
+              >
+                {{ getStatusLabel(selectedApp.status) }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- ─── EMPTY STATE ─── -->
+        <!-- Banner Callout Box -->
         <div
-          v-else
-          class="py-20 flex flex-col items-center justify-center text-center px-4 bg-white border border-gray-100 rounded-3xl shadow-sm"
+          v-if="selectedApp.status === 'pending'"
+          class="bg-accent-50/70 border border-accent-100/80 rounded-xl p-3.5 text-accent-900 font-body-3 leading-relaxed"
         >
-          <div
-            class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5 shrink-0"
-          >
-            <svg
-              class="w-10 h-10 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+          Pengajuanmu telah dikirim dan masih menunggu keputusan Project Owner.
+        </div>
+        <div
+          v-else-if="selectedApp.status === 'accepted'"
+          class="bg-success-50/70 border border-success-100/80 rounded-xl p-3.5 text-success-900 font-body-3 leading-relaxed"
+        >
+          Pengajuanmu telah diterima! Kamu siap berkolaborasi dalam proyek ini.
+        </div>
+        <div
+          v-else-if="selectedApp.status === 'rejected'"
+          class="bg-danger-50/70 border border-danger-100/80 rounded-xl p-3.5 text-danger-900 font-body-3 leading-relaxed"
+        >
+          Pengajuanmu belum dapat dilanjutkan oleh Project Owner saat ini.
+        </div>
+        <div
+          v-else-if="selectedApp.status === 'withdrawn'"
+          class="bg-neutral-50 border border-neutral-200/80 rounded-xl p-3.5 text-neutral-600 font-body-3 leading-relaxed"
+        >
+          Pengajuan ini telah kamu batalkan.
+        </div>
+
+        <!-- Metadata 2x2 Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+          <div>
+            <p class="font-body-3 text-neutral-400">Posisi yang Diajukan</p>
+            <p class="font-title-3 font-bold text-neutral-900 mt-0.5">
+              {{ getRoleName(selectedApp) }}
+            </p>
           </div>
-          <h3 class="text-xl font-bold text-gray-900 mb-2">Belum ada data</h3>
-          <p
-            class="text-gray-500 font-medium max-w-sm mb-8 text-sm leading-relaxed"
-          >
-            {{
-              selectedFilter === 'all'
-                ? 'Tampaknya kamu belum mengirimkan aplikasi lamaran ke proyek manapun. Mari jelajahi peluang baru!'
-                : `Kamu belum memiliki aplikasi dengan status filter ini.`
-            }}
+          <div>
+            <p class="font-body-3 text-neutral-400">Ketersediaan</p>
+            <p class="font-title-3 font-bold text-neutral-900 mt-0.5">
+              {{ getAvailabilityLabel(selectedApp.availability) }}
+            </p>
+          </div>
+          <div>
+            <p class="font-body-3 text-neutral-400">Tanggal Pengajuan</p>
+            <p class="font-title-3 font-bold text-neutral-900 mt-0.5">
+              {{ formatDate(selectedApp.applied_at) }}
+            </p>
+          </div>
+          <div>
+            <p class="font-body-3 text-neutral-400">Tanggal Keputusan</p>
+            <p class="font-title-3 font-bold text-neutral-900 mt-0.5">
+              {{ selectedApp.reviewed_at ? formatDate(selectedApp.reviewed_at) : '—' }}
+            </p>
+          </div>
+        </div>
+
+        <hr class="border-neutral-100" />
+
+        <!-- Motivasi yang Kamu Kirim -->
+        <div>
+          <h4 class="font-label-1 font-bold text-neutral-900 mb-1.5">
+            Motivasi yang Kamu Kirim
+          </h4>
+          <p class="font-body-2 text-neutral-600 leading-relaxed whitespace-pre-line">
+            {{ selectedApp.motivation }}
           </p>
-          <AtomicButton
-            variant="primary"
-            size="md"
-            class="font-bold shadow-lg shadow-primary-500/20"
-            @click="navigateTo('/projects')"
+        </div>
+
+        <hr class="border-neutral-100" />
+
+        <!-- Kontribusi yang Kamu Tawarkan -->
+        <div>
+          <h4 class="font-label-1 font-bold text-neutral-900 mb-1.5">
+            Kontribusi yang Kamu Tawarkan
+          </h4>
+          <p class="font-body-2 text-neutral-600 leading-relaxed whitespace-pre-line">
+            {{ selectedApp.expected_contribution || 'Tidak dicantumkan' }}
+          </p>
+        </div>
+
+        <hr class="border-neutral-100" />
+
+        <!-- Portofolio yang Dilampirkan -->
+        <div>
+          <h4 class="font-label-1 font-bold text-neutral-900 mb-2">
+            Portofolio yang Dilampirkan
+          </h4>
+          <div
+            v-if="selectedApp.portfolio_links && selectedApp.portfolio_links.length > 0"
+            class="space-y-2"
           >
-            <template #icon-left>
-              <svg
-                class="w-4 h-4 mr-2 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div
+              v-for="link in selectedApp.portfolio_links"
+              :key="link"
+              class="border border-neutral-200 rounded-xl p-3 bg-white hover:border-primary-300 transition-colors"
+            >
+              <a
+                :href="link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-primary-600 font-body-2 hover:underline truncate flex items-center justify-between"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </template>
-            Eksplor Proyek
-          </AtomicButton>
+                <span class="truncate">{{ link }}</span>
+                <Icon name="lucide:arrow-up-right" class="w-4 h-4 shrink-0 ml-1.5" />
+              </a>
+            </div>
+          </div>
+          <p v-else class="font-body-2 text-neutral-400 italic">
+            Tidak ada tautan portofolio yang dilampirkan.
+          </p>
+        </div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <template #footer>
+        <div class="flex items-center justify-between w-full">
+          <div>
+            <AtomicButton
+              v-if="selectedApp?.status === 'pending'"
+              variant="outline-danger"
+              size="sm"
+              :disabled="isWithdrawing"
+              :loading="isWithdrawing"
+              @click="handleWithdrawFromModal"
+            >
+              Batalkan Pengajuan
+            </AtomicButton>
+          </div>
+
+          <div>
+            <NuxtLink
+              v-if="selectedApp?.projects?.slug"
+              :to="`/projects/${selectedApp.projects.slug}`"
+            >
+              <AtomicButton
+                variant="outline"
+                size="sm"
+                class="bg-primary-50! text-primary-700! border-primary-200! hover:bg-primary-100!"
+              >
+                Lihat Proyek
+              </AtomicButton>
+            </NuxtLink>
+          </div>
         </div>
       </template>
-      </OrganismAsyncContent>
-    </main>
+    </OrganismModal>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ArrowDownUp, ChevronDown, Funnel, SlidersHorizontal } from '@lucide/vue'
 import { getApiErrorMessage } from '../../utils/error'
 import type { Application } from '~/types/project'
 
 definePageMeta({ layout: 'home', middleware: ['auth', 'onboarding-guard'] })
-useHead({ title: 'Lamaran Saya — Kolaboria' })
+useHead({ title: 'Pengajuan Saya — Kolaboria' })
 
 const { getMyApplications, withdrawApplication } = useProjects()
+const toast = useToast()
+const { show: showPopup } = usePopup()
 
 const {
   data: applications,
@@ -435,140 +605,336 @@ const {
   getMyApplications()
 )
 
-// Filters
-const selectedFilter = ref<
-  'all' | 'pending' | 'accepted' | 'rejected' | 'withdrawn'
->('all')
+// ─── FILTER STATES ───
+type StatusFilter = Application['status']
+const selectedStatuses = ref<StatusFilter[]>([])
+const searchQuery = ref('')
+const selectedContexts = ref<string[]>([])
+const selectedSort = ref<'newest' | 'oldest'>('newest')
+const isMobileFilterOpen = ref(false)
+const isMobileSortOpen = ref(false)
+const isMobileStatusFilterOpen = ref(false)
+const isMobileContextFilterOpen = ref(false)
 
-const filters: Array<{
-  label: string
-  value: 'all' | 'pending' | 'accepted' | 'rejected' | 'withdrawn'
-}> = [
-  { label: 'Semua Lamaran', value: 'all' },
-  { label: 'Menunggu Ditinjau', value: 'pending' },
+// ─── STATS SUMMARY COMPUTATION ───
+const userStats = computed(() => {
+  const list = applications.value || []
+  return {
+    total: list.length,
+    pending: list.filter((app) => app.status === 'pending').length,
+    accepted: list.filter((app) => app.status === 'accepted').length,
+    rejected: list.filter((app) => app.status === 'rejected').length,
+    withdrawn: list.filter((app) => app.status === 'withdrawn').length
+  }
+})
+
+// ─── FILTER OPTIONS / ACTIONS ───
+const statusOptions: { label: string; value: StatusFilter }[] = [
+  { label: 'Menunggu', value: 'pending' },
   { label: 'Diterima', value: 'accepted' },
   { label: 'Ditolak', value: 'rejected' },
   { label: 'Dibatalkan', value: 'withdrawn' }
 ]
 
-// Status styling
-const statusConfig: Record<string, { label: string; classes: string }> = {
-  pending: {
-    label: 'Menunggu',
-    classes: 'bg-amber-50 text-amber-700 ring-amber-200'
-  },
-  accepted: {
-    label: 'Diterima',
-    classes: 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-  },
-  rejected: {
-    label: 'Ditolak',
-    classes: 'bg-red-50 text-red-700 ring-red-200'
-  },
-  withdrawn: {
-    label: 'Dibatalkan',
-    classes: 'bg-gray-100 text-gray-600 ring-gray-200'
-  }
+const projectContextLabels: Record<string, string> = {
+  personal: 'Proyek pribadi',
+  community: 'Komunitas',
+  experiment: 'Eksperimen',
+  client: 'Proyek client'
 }
 
-const availabilityLabel: Record<string, string> = {
-  full_time: 'Full-time',
-  part_time: 'Part-time',
-  weekends_only: 'Akhir Pekan',
-  flexible: 'Fleksibel'
-}
+const projectContexts = [
+  'Proyek pribadi',
+  'Komunitas',
+  'Eksperimen',
+  'Proyek client'
+]
 
-// Stats
-const userStats = computed(() => {
-  if (!applications.value) return { total: 0, pending: 0, accepted: 0 }
-  return {
-    total: applications.value.length,
-    pending: applications.value.filter((app) => app.status === 'pending')
-      .length,
-    accepted: applications.value.filter((app) => app.status === 'accepted')
-      .length
-  }
+const sortOptions = [
+  { label: 'Terbaru', value: 'newest' },
+  { label: 'Terlama', value: 'oldest' }
+]
+
+const isAllStatusesSelected = computed(() => selectedStatuses.value.length === 0)
+const isAllContextsSelected = computed(() => selectedContexts.value.length === 0)
+const activeFilterCount = computed(() => selectedStatuses.value.length + selectedContexts.value.length)
+const toggleAllStatuses = (checked: boolean) => {
+  if (checked) selectedStatuses.value = []
+}
+const toggleStatus = (status: StatusFilter) => {
+  selectedStatuses.value = selectedStatuses.value.includes(status)
+    ? selectedStatuses.value.filter(item => item !== status)
+    : [...selectedStatuses.value, status]
+}
+const toggleAllContexts = (checked: boolean) => {
+  if (checked) selectedContexts.value = []
+}
+const toggleContext = (context: string) => {
+  selectedContexts.value = selectedContexts.value.includes(context)
+    ? selectedContexts.value.filter(item => item !== context)
+    : [...selectedContexts.value, context]
+}
+const resetFilters = () => {
+  selectedStatuses.value = []
+  selectedContexts.value = []
+  searchQuery.value = ''
+  selectedSort.value = 'newest'
+  currentPage.value = 1
+  mobileDisplayCount.value = itemsPerPage
+}
+const statusFilterLabel = computed(() => {
+  if (selectedStatuses.value.length === 0) return 'Status'
+  if (selectedStatuses.value.length > 1) return `${selectedStatuses.value.length} Status`
+  return statusOptions.find(option => option.value === selectedStatuses.value[0])?.label || 'Status'
+})
+const contextFilterLabel = computed(() => {
+  if (selectedContexts.value.length === 0) return 'Konteks'
+  if (selectedContexts.value.length > 1) return `${selectedContexts.value.length} Konteks`
+  return selectedContexts.value[0]
 })
 
-// Filtered data
-const filteredApplications = computed(() => {
-  if (!applications.value) return []
-  if (selectedFilter.value === 'all') return applications.value
-  return applications.value.filter((app) => app.status === selectedFilter.value)
-})
-
-// Helpers
-const getProjectIcon = (title?: string) => {
-  return title ? title.charAt(0).toUpperCase() : '?'
+// ─── HELPERS ───
+const getMonogram = (title?: string) => {
+  if (!title) return 'PP'
+  const words = title.trim().split(/\s+/)
+  if (words.length >= 2) {
+    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
+  }
+  return title.slice(0, 2).toUpperCase()
 }
 
-const getProjectColorClass = (status: string) => {
-  switch (status) {
-    case 'accepted':
-      return 'bg-emerald-500'
-    case 'pending':
-      return 'bg-amber-500'
-    case 'rejected':
-      return 'bg-red-500'
+const getAuthorName = (app?: Application | null) => {
+  if (!app) return 'Project Owner'
+  const proj = app.projects as any
+  return (
+    proj?.creator?.full_name ||
+    proj?.creator?.username ||
+    proj?.profiles?.full_name ||
+    proj?.profiles?.username ||
+    'Project Owner'
+  )
+}
+
+const getProjectContext = (app?: Application | null) => {
+  if (!app) return 'Proyek pribadi'
+  const proj = app.projects as any
+  const context = proj?.context || proj?.origin
+  return projectContextLabels[context] || context || 'Proyek pribadi'
+}
+
+const getRoleName = (app?: Application | null) => {
+  if (!app) return 'Kontributor'
+  return (
+    app.project_role?.custom_title ||
+    app.project_role?.contribution_role?.name ||
+    'Kontributor'
+  )
+}
+
+const getAvailabilityLabel = (availability?: string) => {
+  switch (availability) {
+    case 'part_time':
+      return 'Paruh waktu'
+    case 'full_time':
+      return 'Penuh waktu'
+    case 'weekends_only':
+      return 'Akhir pekan'
+    case 'flexible':
     default:
-      return 'bg-gray-400'
+      return 'Fleksibel'
   }
 }
 
-const relativeDate = (dateString: string) => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+const getStatusLabel = (status?: string) => {
+  switch (status) {
+    case 'pending':
+      return 'Menunggu'
+    case 'accepted':
+      return 'Diterima'
+    case 'rejected':
+      return 'Ditolak'
+    case 'withdrawn':
+      return 'Dibatalkan'
+    default:
+      return status || '—'
+  }
+}
 
-  if (diffDays === 0) return 'hari ini'
-  if (diffDays === 1) return 'kemarin'
-  if (diffDays < 7) return `${diffDays} hari lalu`
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} minggu lalu`
+const getStatusBadgeClass = (status?: string) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-accent-50 text-accent-700 border border-accent-200/60'
+    case 'accepted':
+      return 'bg-success-50 text-success-700 border border-success-200/60'
+    case 'rejected':
+      return 'bg-danger-50 text-danger-700 border border-danger-200/60'
+    case 'withdrawn':
+    default:
+      return 'bg-neutral-100 text-neutral-600 border border-neutral-200/60'
+  }
+}
+
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return '—'
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return dateString
   return date.toLocaleDateString('id-ID', {
-    month: 'short',
     day: 'numeric',
+    month: 'short',
     year: 'numeric'
   })
 }
 
-// Actions
-const isWithdrawing = ref(false)
-const { show: showPopup } = usePopup()
-const toast = useToast()
+// ─── FILTERING & SORTING ───
+const filteredApplications = computed(() => {
+  let list = applications.value || []
 
-const getTagVariant = (
-  status: string
-): 'default' | 'primary' | 'success' | 'warning' | 'danger' => {
-  switch (status) {
-    case 'accepted':
-      return 'success'
-    case 'pending':
-      return 'warning'
-    case 'rejected':
-      return 'danger'
-    case 'withdrawn':
-    default:
-      return 'default'
+  // 1. Status Filter (OR within the selected statuses)
+  if (selectedStatuses.value.length > 0) {
+    list = list.filter((app) => selectedStatuses.value.includes(app.status))
   }
+
+  // 2. Context Filter (OR within the selected contexts)
+  if (selectedContexts.value.length > 0) {
+    list = list.filter((app) => {
+      const ctx = getProjectContext(app)
+      return selectedContexts.value.some(context => ctx.toLowerCase() === context.toLowerCase())
+    })
+  }
+
+  // 3. Search Query
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    list = list.filter((app) => {
+      const matchTitle = (app.projects?.title || '').toLowerCase().includes(q)
+      const matchRole = getRoleName(app).toLowerCase().includes(q)
+      const matchAuthor = getAuthorName(app).toLowerCase().includes(q)
+      const matchDesc = (app.projects?.summary || '').toLowerCase().includes(q)
+      const matchContrib = (app.expected_contribution || '').toLowerCase().includes(q)
+      const matchMotiv = (app.motivation || '').toLowerCase().includes(q)
+      return matchTitle || matchRole || matchAuthor || matchDesc || matchContrib || matchMotiv
+    })
+  }
+
+  // 4. Sorting
+  return list.slice().sort((a, b) => {
+    const timeA = new Date(a.applied_at || 0).getTime()
+    const timeB = new Date(b.applied_at || 0).getTime()
+    return selectedSort.value === 'newest' ? timeB - timeA : timeA - timeB
+  })
+})
+
+// ─── RESPONSIVE VIEWPORT & PAGINATION / INFINITE SCROLL ───
+const isDesktop = ref(false)
+let mediaQuery: MediaQueryList | null = null
+
+const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
+  isDesktop.value = e.matches
 }
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    mediaQuery = window.matchMedia('(min-width: 1024px)')
+    isDesktop.value = mediaQuery.matches
+    mediaQuery.addEventListener('change', handleMediaChange)
+  }
+})
+
+onUnmounted(() => {
+  if (mediaQuery) {
+    mediaQuery.removeEventListener('change', handleMediaChange)
+  }
+})
+
+const currentPage = ref(1)
+const itemsPerPage = 6
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredApplications.value.length / itemsPerPage) || 1
+})
+
+const mobileDisplayCount = ref(itemsPerPage)
+
+const hasMoreMobile = computed(() => {
+  return mobileDisplayCount.value < filteredApplications.value.length
+})
+
+const loadMoreMobile = async () => {
+  mobileDisplayCount.value += itemsPerPage
+}
+
+const { sentinelRef } = useInfiniteScroll({
+  onLoadMore: loadMoreMobile,
+  hasMore: hasMoreMobile,
+  disabled: isDesktop,
+  distance: '200px'
+})
+
+// Reset pagination when any filter changes
+watch([selectedStatuses, selectedContexts, searchQuery, selectedSort], () => {
+  currentPage.value = 1
+  mobileDisplayCount.value = itemsPerPage
+}, { deep: true })
+
+const displayedApplications = computed(() => {
+  if (isDesktop.value) {
+    const start = (currentPage.value - 1) * itemsPerPage
+    return filteredApplications.value.slice(start, start + itemsPerPage)
+  }
+  return filteredApplications.value.slice(0, mobileDisplayCount.value)
+})
+
+const currentDisplayedCount = computed(() => {
+  if (filteredApplications.value.length === 0) return 0
+  if (isDesktop.value) {
+    return Math.min(
+      currentPage.value * itemsPerPage,
+      filteredApplications.value.length
+    )
+  }
+  return Math.min(mobileDisplayCount.value, filteredApplications.value.length)
+})
+
+// ─── DETAIL MODAL STATE ───
+const selectedApp = ref<Application | null>(null)
+const isDetailModalOpen = ref(false)
+
+const openDetail = (app: Application) => {
+  selectedApp.value = app
+  isDetailModalOpen.value = true
+}
+
+const closeDetail = () => {
+  isDetailModalOpen.value = false
+  selectedApp.value = null
+}
+
+const handleWithdrawFromModal = () => {
+  if (!selectedApp.value) return
+  const id = selectedApp.value.id
+  closeDetail()
+  handleWithdraw(id)
+}
+
+// ─── WITHDRAW ACTION ───
+const isWithdrawing = ref(false)
 
 const handleWithdraw = (applicationId: string) => {
   showPopup({
-    title: 'Tarik Lamaran?',
+    title: 'Batalkan Pengajuan?',
     description:
-      'Apakah Anda yakin ingin membatalkan lamaran ini? Tindakan ini tidak dapat dibatalkan.',
+      'Apakah kamu yakin ingin membatalkan pengajuan ini? Tindakan ini tidak dapat dibatalkan.',
     type: 'danger',
-    positiveLabel: 'Ya, Tarik Lamaran',
-    negativeLabel: 'Batal',
+    positiveLabel: 'Ya, Batalkan',
+    negativeLabel: 'Kembali',
     onPositive: async () => {
       isWithdrawing.value = true
       try {
         await withdrawApplication(applicationId)
-        toast.success('Lamaran berhasil ditarik.')
+        toast.success('Pengajuan berhasil dibatalkan.')
         await refresh()
       } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Gagal membatalkan lamaran.'))
+        toast.error(getApiErrorMessage(err, 'Gagal membatalkan pengajuan.'))
       } finally {
         isWithdrawing.value = false
       }
@@ -578,56 +944,11 @@ const handleWithdraw = (applicationId: string) => {
 </script>
 
 <style scoped>
-/* Aurora effects */
-.k-aurora-1 {
-  position: absolute;
-  top: -20%;
-  left: -10%;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255, 255, 255, 0.15) 0%,
-    transparent 70%
-  );
-  animation: aurora-drift 14s ease-in-out infinite alternate;
-  border-radius: 50%;
-  filter: blur(60px);
-  will-change: transform;
-}
-.k-aurora-2 {
-  position: absolute;
-  bottom: -20%;
-  right: -10%;
-  width: 70%;
-  height: 70%;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255, 176, 32, 0.12) 0%,
-    transparent 70%
-  );
-  animation: aurora-drift 18s ease-in-out infinite alternate-reverse;
-  border-radius: 50%;
-  filter: blur(70px);
-  will-change: transform;
-}
-@keyframes aurora-drift {
-  0% {
-    transform: translate(0px, 0px) scale(1);
-  }
-  50% {
-    transform: translate(40px, -30px) scale(1.08);
-  }
-  100% {
-    transform: translate(-20px, 20px) scale(0.95);
-  }
-}
-
-.hide-scrollbar {
+.scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
-.hide-scrollbar::-webkit-scrollbar {
+.scrollbar-none::-webkit-scrollbar {
   display: none;
 }
 </style>

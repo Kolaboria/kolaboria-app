@@ -2,7 +2,6 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import {
   Ellipsis,
-  Eye,
   SquarePen,
   Users,
   LayoutDashboard,
@@ -195,9 +194,16 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
   <OrganismCard
     variant="default"
     padding="none"
-    class="h-full overflow-visible! border-neutral-200 transition-all hover:border-neutral-300 hover:shadow-sm"
+    class="group relative h-full overflow-visible! border-neutral-200 transition-all hover:border-neutral-300 hover:shadow-sm"
   >
-    <div class="flex h-full flex-col justify-between p-5 sm:p-6">
+    <NuxtLink
+      :to="`/projects/${project.slug}`"
+      class="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+      :aria-label="`Buka detail proyek ${project.title}`"
+    />
+    <div
+      class="pointer-events-none relative z-10 flex h-full flex-col justify-between p-5 sm:p-6"
+    >
       <div>
         <!-- ─── TOP BADGES & ACTIONS ROW ─── -->
         <div class="flex items-center justify-between gap-2">
@@ -214,7 +220,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
           </div>
 
           <!-- Three-dots Action Button (AtomicIconButton) -->
-          <div ref="menuRef" class="relative">
+          <div ref="menuRef" class="relative pointer-events-auto">
             <AtomicIconButton
               variant="outline"
               shape="square"
@@ -240,15 +246,6 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
                 class="absolute right-0 z-30 mt-2 w-48 origin-top-right rounded-xl border border-neutral-200 bg-white py-1.5 shadow-lg"
               >
                 <NuxtLink
-                  :to="`/projects/${project.slug}`"
-                  class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
-                  @click="isMenuOpen = false"
-                >
-                  <Eye class="size-4 text-tertiary" />
-                  Lihat Detail
-                </NuxtLink>
-
-                <NuxtLink
                   :to="`/projects/${project.slug}/edit`"
                   class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
                   @click="isMenuOpen = false"
@@ -258,6 +255,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
                 </NuxtLink>
 
                 <NuxtLink
+                  v-if="pendingApplicantsCount !== undefined && pendingCount > 0"
                   :to="`/projects/${project.slug}/applicants`"
                   class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
                   @click="isMenuOpen = false"
@@ -291,12 +289,11 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
         </div>
 
         <!-- ─── PROJECT TITLE ─── -->
-        <NuxtLink
-          :to="`/projects/${project.slug}`"
-          class="mt-3.5 block font-title-2 font-bold text-primary transition-colors hover:text-brand"
+        <h2
+          class="mt-3.5 font-title-2 font-bold text-primary transition-colors group-hover:text-brand"
         >
           {{ project.title }}
-        </NuxtLink>
+        </h2>
 
         <!-- ─── PROJECT SUMMARY ─── -->
         <p class="mt-2 line-clamp-2 font-body-2 text-secondary leading-relaxed">
@@ -343,7 +340,10 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
         </div>
 
         <!-- Bottom Action Row -->
-        <div class="flex items-center justify-between gap-3 pt-0.5">
+        <div
+          v-if="pendingApplicantsCount !== undefined"
+          class="flex items-center justify-between gap-3 pt-0.5"
+        >
           <!-- Left Application Notice -->
           <div
             v-if="pendingCount > 0"
@@ -359,24 +359,12 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
           </div>
 
           <!-- Right Action Button (AtomicButton) -->
-          <div>
+          <div class="pointer-events-auto">
             <AtomicButton
               v-if="pendingCount > 0"
               :to="`/projects/${project.slug}/applicants`"
               label="Tinjau Pengajuan"
               variant="primary"
-              size="sm"
-            >
-              <template #icon-right>
-                <ArrowRight class="size-4" />
-              </template>
-            </AtomicButton>
-
-            <AtomicButton
-              v-else
-              :to="manageUrl"
-              label="Kelola Proyek"
-              variant="outline"
               size="sm"
             >
               <template #icon-right>

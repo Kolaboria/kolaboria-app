@@ -7,16 +7,17 @@ import { useAuth } from '~/composables/useAuth'
 import { useToast } from '~/composables/useToast'
 import { useInfiniteScroll } from '~/composables/useInfiniteScroll'
 import { useMyProjectList } from '~/composables/useMyProjectList'
+import { getMyProjectSummaryStats } from '~/utils/my-project-summary-stats'
 import { getApiErrorMessage } from '~/utils/error'
 import MyProjectCard from '~/components/project/MyProjectCard.vue'
 import ProjectStatusConfirmModal from '~/components/project/ProjectStatusConfirmModal.vue'
 
-const { getProjectApplicants, getProjectBySlug, archiveProject } = useProjects()
+const { archiveProject } = useProjects()
 const { currentUserId } = useAuth()
 const toast = useToast()
 
 // ─── PROGRESSIVE DATA LOADING (useMyProjectList) ───
-const { projects, pending, loadingMore, error, refresh } =
+const { projects, pending, loadingMore, loadMoreError, error, refresh } =
   useMyProjectList(currentUserId)
 
 const loadError = computed(() =>
@@ -25,80 +26,25 @@ const loadError = computed(() =>
     : ''
 )
 
-// ─── CACHED DETAILS (Roles & Pending Applicants) ───
-const projectRolesMap = ref<
-  Record<string, Array<{ name: string; capacity: number }>>
->({})
-const pendingApplicantsMap = ref<Record<string, number>>({})
-const pendingDetailRequests = new Set<string>()
-
-const loadEnrichedData = () => {
-  const currentList = projects.value
-  for (const project of currentList) {
-    // 1. Load roles if open or in_progress or draft (guard against repeating pending requests)
-    if (
-      !projectRolesMap.value[project.id] &&
-      !pendingDetailRequests.has(project.slug)
-    ) {
-      pendingDetailRequests.add(project.slug)
-      void getProjectBySlug(project.slug)
-        .then((detail) => {
-          if (detail && detail.project_roles) {
-            projectRolesMap.value[project.id] = detail.project_roles.map(
-              (r) => ({
-                name:
-                  r.contribution_role?.name || r.custom_title || 'Kontributor',
-                capacity: r.capacity
-              })
-            )
-          }
-        })
-        .catch(() => {})
-    }
-
-    // 2. Load pending applicants for projects accepting applications
-    if (
-      ['open', 'in_progress'].includes(project.status) &&
-      pendingApplicantsMap.value[project.id] === undefined
-    ) {
-      void getProjectApplicants(project.id)
-        .then((applicants) => {
-          const count = (applicants || []).filter(
-            (a) => a.status === 'pending'
-          ).length
-          pendingApplicantsMap.value[project.id] = count
-        })
-        .catch(() => {
-          pendingApplicantsMap.value[project.id] = 0
-        })
-    }
-  }
-}
-
-watch(
-  projects,
-  () => {
-    loadEnrichedData()
-  },
-  { immediate: true }
+// Display complete totals only after every API page has loaded successfully.
+const projectStatsReady = computed(() =>
+  !pending.value && !loadingMore.value && !error.value && !loadMoreError.value
 )
-
-// ─── STATS CALCULATION ───
-const activeProjectsCount = computed(() => {
-  return projects.value.filter((p) =>
-    ['open', 'in_progress', 'awaiting_owner'].includes(p.status)
-  ).length
-})
-
-const draftProjectsCount = computed(() => {
-  return projects.value.filter((p) => p.status === 'draft').length
-})
-
-const totalPendingApplicants = computed(() => {
-  return Object.values(pendingApplicantsMap.value).reduce(
-    (sum, count) => sum + count,
-    0
-  )
+const projectSummaryStats = computed(() => getMyProjectSummaryStats(projects.value))
+const activeProjectsCount = computed(() =>
+  projectStatsReady.value ? projectSummaryStats.value.activeProjects : null
+)
+const draftProjectsCount = computed(() =>
+  projectStatsReady.value ? projectSummaryStats.value.draftProjects : null
+)
+const totalPendingApplicants = computed(() =>
+  projectStatsReady.value ? projectSummaryStats.value.pendingApplicants : null
+)
+const pendingApplicantsDescription = computed(() => {
+  if (pending.value || loadingMore.value) return 'Memuat ringkasan proyek'
+  if (error.value || loadMoreError.value) return 'Ringkasan belum lengkap'
+  if (totalPendingApplicants.value === null) return 'Jumlah belum tersedia dari API'
+  return 'Membutuhkan keputusan'
 })
 
 // ─── FILTER STATES (Dropdown like sort) ───
@@ -389,7 +335,7 @@ const confirmArchive = async () => {
               <p
                 class="mt-1 font-title-1 text-2xl font-bold text-neutral-900 md:text-3xl"
               >
-                {{ activeProjectsCount }}
+                {{ activeProjectsCount ?? '—' }}
               </p>
               <p
                 class="mt-1 hidden font-body-3 text-xs text-neutral-400 md:block"
@@ -414,12 +360,12 @@ const confirmArchive = async () => {
               <p
                 class="mt-1 font-title-1 text-2xl font-bold text-amber-600 md:text-3xl"
               >
-                {{ totalPendingApplicants }}
+                {{ totalPendingApplicants ?? '—' }}
               </p>
               <p
                 class="mt-1 hidden font-body-3 text-xs text-neutral-400 md:block"
               >
-                Membutuhkan keputusan
+                {{ pendingApplicantsDescription }}
               </p>
             </div>
             <div
@@ -439,7 +385,7 @@ const confirmArchive = async () => {
               <p
                 class="mt-1 font-title-1 text-2xl font-bold text-neutral-900 md:text-3xl"
               >
-                {{ draftProjectsCount }}
+                {{ draftProjectsCount ?? '—' }}
               </p>
               <p
                 class="mt-1 hidden font-body-3 text-xs text-neutral-400 md:block"
@@ -548,8 +494,8 @@ const confirmArchive = async () => {
             :key="project.id"
             :project="project"
             :current-user-id="currentUserId || ''"
-            :roles="projectRolesMap[project.id]"
-            :pending-applicants-count="pendingApplicantsMap[project.id]"
+            :roles="project.roles"
+            :pending-applicants-count="project.pending_application_count ?? undefined"
             @archive="handleArchiveRequest"
           />
         </div>
@@ -626,7 +572,9 @@ const confirmArchive = async () => {
       action="archived"
       :project-title="projectToArchive?.title || ''"
       :has-active-applicants="
-        (pendingApplicantsMap[projectToArchive?.id || ''] ?? 0) > 0
+        projectToArchive?.pending_application_count == null
+          ? null
+          : projectToArchive.pending_application_count > 0
       "
       @close="showArchiveModal = false"
       @confirm="confirmArchive"

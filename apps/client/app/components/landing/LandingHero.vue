@@ -123,6 +123,9 @@
     </svg>
 
     <div class="k-container relative z-10 pt-28 pb-20 lg:pt-32 lg:pb-28 w-full">
+      <div
+        class="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-14 lg:gap-10 items-center"
+      >
         <div>
           <h1
             :ref="(el) => revealItems(el, 1)"
@@ -155,7 +158,198 @@
               <AtomicButton variant="primary"> Mulai Kolaborasi </AtomicButton>
             </NuxtLink>
           </div>
+
+          <div
+            :ref="(el) => revealItems(el, 4)"
+            class="reveal mt-8 flex gap-8 border-t border-white/15 pt-8"
+            style="--delay: 400ms"
+          >
+            <div v-for="stat in heroStats" :key="stat.label">
+              <p class="text-2xl font-black text-white tracking-tight">
+                {{ stat.value }}<span class="text-accent-400">+</span>
+              </p>
+              <p class="text-white/70 font-body-3 mt-0.5">
+                {{ stat.label }}
+              </p>
+            </div>
+          </div>
         </div>
+
+        <div
+          class="hidden lg:flex justify-center items-center relative h-[450px]"
+        >
+          <!-- Floating Notif Badges -->
+          <div
+            class="absolute top-[2%] right-[10%] animate-float z-20"
+            style="animation-delay: 1.5s"
+          >
+            <div
+              :ref="(el) => revealItems(el, 6)"
+              class="reveal-scale flex items-center gap-2 bg-accent-400 backdrop-blur-md border border-neutral-100 py-1.5 px-4 rounded-full shadow-lg"
+              style="--delay: 600ms"
+            >
+              <span class="text-secondary-800 font-label-3"
+                >Proyek Diterbitkan</span
+              >
+            </div>
+          </div>
+
+          <div
+            class="absolute bottom-[22%] -left-[5%] animate-float z-20"
+            style="animation-delay: 0.5s"
+          >
+            <div
+              :ref="(el) => revealItems(el, 7)"
+              class="reveal-scale flex items-center gap-2 bg-secondary-500 backdrop-blur-md border border-neutral-100 py-1.5 px-4 rounded-full shadow-lg"
+              style="--delay: 700ms"
+            >
+              <span class="text-white font-label-3">Slot FE Terisi</span>
+            </div>
+          </div>
+
+          <div
+            class="absolute bottom-[5%] right-[5%] animate-float z-20"
+            style="animation-delay: 2.5s"
+          >
+            <div
+              :ref="(el) => revealItems(el, 8)"
+              class="reveal-scale flex items-center gap-2 bg-success-500 backdrop-blur-md border border-neutral-100 py-1.5 px-4 rounded-full shadow-lg"
+              style="--delay: 800ms"
+            >
+              <span class="text-white font-label-3"
+                >Kolaborator Bergabung</span
+              >
+            </div>
+          </div>
+
+          <!-- Main Mock Card -->
+          <div
+            :ref="(el) => revealItems(el, 5)"
+            class="reveal-right"
+            style="--delay: 500ms"
+          >
+            <div
+              class="relative z-10 w-[380px] bg-white rounded-2xl p-6 shadow-2xl shadow-primary-900/40 ring-1 ring-neutral-200 -translate-y-2 k-tilt-card"
+            >
+              <!-- Header -->
+              <div class="flex justify-between items-start mb-6">
+                <div>
+                  <h3
+                    class="text-secondary-900 font-bold text-lg leading-tight mb-1"
+                  >
+                    Kolaboria Mobile App
+                  </h3>
+                  <p class="text-secondary font-body-3">Oleh Ahmad Fazri</p>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 bg-success-50 border border-success-100 px-2 py-1 rounded-md"
+                >
+                  <div class="relative flex h-2 w-2">
+                    <span
+                      class="relative inline-flex rounded-full h-2 w-2 bg-success-500"
+                    ></span>
+                  </div>
+                  <span
+                    class="text-success-700 font-label-3 uppercase tracking-wider"
+                    >Aktif</span
+                  >
+                </div>
+              </div>
+
+              <!-- Roles -->
+              <div class="flex gap-2 mb-6">
+                <div
+                  class="flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1.5 rounded-lg border border-neutral-200"
+                >
+                  <span class="text-secondary-700 font-body-3 font-medium">UI/UX</span>
+                  <span class="text-neutral-400 font-body-3">1/1</span>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 bg-primary-50 px-2.5 py-1.5 rounded-lg border border-primary-200"
+                >
+                  <span class="text-primary-600 font-body-3 font-medium"
+                    >Frontend</span
+                  >
+                  <span class="text-primary-400 font-body-3">0/2</span>
+                </div>
+                <div
+                  class="flex items-center gap-1.5 bg-neutral-50 px-2.5 py-1.5 rounded-lg border border-neutral-200"
+                >
+                  <span class="text-secondary-700 font-body-3 font-medium">Backend</span>
+                  <span class="text-neutral-400 font-body-3">1/1</span>
+                </div>
+              </div>
+
+              <!-- Progress -->
+              <div class="mb-6">
+                <div class="flex justify-between font-body-3 mb-2">
+                  <span class="text-secondary">Progress</span>
+                  <span class="text-secondary-900 font-medium">65%</span>
+                </div>
+                <div
+                  class="h-2 w-full bg-neutral-100 rounded-full overflow-hidden"
+                >
+                  <div class="h-full bg-primary-400 rounded-full w-[65%]"></div>
+                </div>
+              </div>
+
+              <div class="h-px w-full bg-neutral-200 mb-6"></div>
+
+              <!-- Activity Feed -->
+              <div class="space-y-4">
+                <p
+                  class="text-neutral-400 font-label-3 uppercase tracking-wider mb-2"
+                >
+                  Aktivitas Terkini
+                </p>
+
+                <div class="flex items-center gap-3">
+                  <img
+                    src="https://ui-avatars.com/api/?name=Ahmad&background=4AB8E0&color=fff&size=24"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-secondary-700 font-body-3 truncate">
+                      <span class="font-semibold text-secondary-900">Ahmad</span>
+                      melakukan commit: setup auth
+                    </p>
+                  </div>
+                  <span class="text-neutral-400 font-body-3">2m</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <img
+                    src="https://ui-avatars.com/api/?name=Sinta&background=FFB020&color=fff&size=24"
+                    class="w-6 h-6 rounded-full"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-secondary-700 font-body-3 truncate">
+                      <span class="font-semibold text-secondary-900">Sinta</span>
+                      mengunggah desain Figma
+                    </p>
+                  </div>
+                  <span class="text-neutral-400 font-body-3">15m</span>
+                </div>
+
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-6 h-6 rounded-full bg-secondary-500 flex items-center justify-center font-label-3 text-white"
+                  >
+                    D
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-secondary-700 font-body-3 truncate">
+                      <span class="font-semibold text-secondary-900">Deri</span>
+                      bergabung sebagai Backend
+                    </p>
+                  </div>
+                  <span class="text-neutral-400 font-body-3">1h</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div
@@ -211,4 +405,9 @@ import { useScrollReveal } from '~/composables/useScrollReveal'
 
 const { revealItems } = useScrollReveal()
 
+const heroStats = [
+  { value: '2k', label: 'Talenta Terdaftar' },
+  { value: '150', label: 'Proyek Aktif' },
+  { value: '500', label: 'Kolaborasi Terjalin' }
+]
 </script>

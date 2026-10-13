@@ -97,12 +97,12 @@ const goBack = () => {
       </AtomicButton>
       <AtomicButton
         v-if="mode === 'edit'"
-        :variant="isDraft && currentStep === 4 ? 'outline' : 'primary'"
+        variant="outline"
         :loading="isSubmitting"
         :disabled="isSubmitting || canSave === false"
         @click="emit('save-changes')"
       >
-        Simpan Perubahan
+        Simpan
       </AtomicButton>
       <AtomicButton
         v-if="mode === 'edit' && isDraft && currentStep === 4"
@@ -164,7 +164,7 @@ const goBack = () => {
           :disabled="isSubmitting || canSave === false"
           @click="emit('save-changes')"
         >
-          Simpan Perubahan
+          Simpan
         </AtomicButton>
         <AtomicButton
           variant="primary"

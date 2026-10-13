@@ -199,6 +199,8 @@ export interface ProjectSummaryResponse {
 
 export interface MyProjectSummaryResponse extends ProjectSummaryResponse {
   my_scope: 'owned' | 'initiated'
+  roles: Array<{ name: string; capacity: number }>
+  pending_application_count?: number | null
 }
 
 export interface ProjectEditorOwnerRole {
