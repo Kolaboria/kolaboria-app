@@ -7,6 +7,9 @@ import { useProjectEditor } from '~/composables/useProjectEditor'
 import { useProjectEditorCatalogs } from '~/composables/useProjectEditorCatalogs'
 import { useProjectEditorNotifications } from '~/composables/useProjectEditorNotifications'
 import { useAuth } from '~/composables/useAuth'
+import { useProjectLifecycle } from '~/composables/useProjectLifecycle'
+import ProjectLifecycleActions from '../ProjectLifecycleActions.vue'
+import ProjectStatusConfirmModal from '../ProjectStatusConfirmModal.vue'
 import { validateProjectEditorStep } from '~/data/project-editor-validation'
 import type {
   ProjectCreationMode,
@@ -15,7 +18,8 @@ import type {
   ProjectEditorCreationContext,
   ProjectEditorEligibility,
   ProjectEditorPersistence,
-  ProjectEditorRecord
+  ProjectEditorRecord,
+  ProjectLifecycleAction
 } from '~/types/project-editor'
 
 const props = defineProps<{
@@ -92,6 +96,27 @@ const isOrganization = computed(
 const isSavedDraft = computed(
   () => props.mode === 'edit' && editor.record.value?.status === 'draft'
 )
+const lifecycleMenu = ref<HTMLDetailsElement | null>(null)
+const toast = useToast()
+const lifecycle = useProjectLifecycle({
+  accountId: computed(() => props.accountId || currentUserId.value),
+  onChanged: async (action, detail) => {
+    toast.success(action === 'delete' ? 'Draft proyek berhasil dihapus.' : action === 'draft' ? 'Proyek berhasil dikembalikan ke draft.' : 'Proyek berhasil diarsipkan.')
+    if (action === 'draft' && detail) editor.acceptServerDetail(detail)
+    else await router.replace('/projects/my-projects')
+  }
+})
+const canManageLifecycle = computed(() => {
+  const ownership = editor.record.value?.ownership
+  return Boolean(ownership && (ownership.owner_id === (props.accountId || currentUserId.value) ||
+    (!ownership.owner_id && editor.selectedOrganization.value)))
+})
+const requestLifecycle = (action: ProjectLifecycleAction) => {
+  const record = editor.record.value
+  if (!record || !canManageLifecycle.value || editor.isDirty.value || editor.isSubmitting.value || props.contextAvailable === false) return
+  lifecycleMenu.value?.removeAttribute('open')
+  lifecycle.request(action, { id: record.id, title: editor.draft.value.title, status: record.status, version: record.version })
+}
 const completedSteps = computed(() =>
   [0, 1, 2, 3, 4].map(
     (step) =>
@@ -170,7 +195,7 @@ const publish = () => {
     title: isOrganization.value
       ? 'Publikasikan proyek organisasi?'
       : 'Publikasikan proyek?',
-    description: isOrganization.value
+    description: isOrganization.value && !editor.record.value?.ownership?.owner_id
       ? 'Proyek akan dipublikasikan untuk mencari Project Lead. Perubahan definisi disimpan terlebih dahulu.'
       : 'Proyek akan dipublikasikan secara publik. Perubahan definisi disimpan terlebih dahulu.',
     type: 'info',
@@ -217,6 +242,20 @@ const publish = () => {
           }}
         </p>
       </header>
+      <div v-if="props.mode === 'edit' && canManageLifecycle && editor.record.value && ['draft', 'open'].includes(editor.record.value.status)" class="mb-5 flex flex-wrap items-center justify-end gap-3">
+        <p v-if="editor.isDirty.value" class="font-body-3 text-secondary">Simpan perubahan sebelum mengelola status atau menghapus draft.</p>
+        <details ref="lifecycleMenu" class="relative">
+          <summary class="cursor-pointer rounded-lg border border-neutral-300 bg-white px-4 py-2 font-label-2 text-secondary">Kelola proyek</summary>
+          <div class="absolute right-0 z-40 mt-2 w-56 rounded-xl border border-neutral-200 bg-white py-1.5 shadow-lg">
+            <ProjectLifecycleActions
+              :status="editor.record.value.status"
+              :can-manage="canManageLifecycle"
+              :disabled="editor.isDirty.value || editor.isSubmitting.value || lifecycle.pending.value || contextAvailable === false"
+              @select="requestLifecycle"
+            />
+          </div>
+        </details>
+      </div>
       <div
         v-if="isOrganization && !editor.selectedOrganization.value"
         class="mb-5 rounded-xl border border-accent-200 bg-accent-50 p-4"
@@ -311,7 +350,7 @@ const publish = () => {
           <ProjectEditorActions
             :mode="props.mode"
             :current-step="editor.currentStep.value"
-            :is-submitting="editor.isSubmitting.value"
+            :is-submitting="editor.isSubmitting.value || lifecycle.pending.value"
             :can-publish="
               editor.canPublish.value &&
               (props.mode === 'create' || isSavedDraft)
@@ -335,6 +374,16 @@ const publish = () => {
           </p>
         </div>
       </div>
+      <ProjectStatusConfirmModal
+        :show="Boolean(lifecycle.target.value)"
+        :action="lifecycle.action.value"
+        :project-title="lifecycle.target.value?.title || ''"
+        :pending="lifecycle.pending.value"
+        :error-message="lifecycle.errorMessage.value"
+        :disable-confirm="lifecycle.conflict.value"
+        @close="lifecycle.close"
+        @confirm="lifecycle.confirm"
+      />
   </main>
 </template>
 

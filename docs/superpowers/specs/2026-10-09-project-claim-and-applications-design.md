@@ -1,5 +1,7 @@
 # Project Lead Claim and Contributor Applications — Design Spec
 
+> **Latest reference for overlapping applicants/applications scope:** use [13 October 2026 requirements r2](../../../../kolaboria-api/docs/applicants-api-requirements.md) and its [implementation plan](../../../../kolaboria-api/docs/superpowers/plans/2026-10-13-applicants-api-and-client.md). This 9 October document records historical context; its original statements about missing Apply/schema/capabilities do not describe the active API today. Claim details remain context for a separate dependency and must be reconciled with current user decisions and active contracts before execution.
+
 > **Status:** Draft for user review. This document records the approved design direction and marks detailed product rules that still need confirmation. It is not implementation approval.
 
 ## 1. Problem and goal

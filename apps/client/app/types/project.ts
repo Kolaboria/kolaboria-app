@@ -23,6 +23,17 @@ export type ProjectAvailability =
   | 'flexible'
 export type ApplicantAvailability = ProjectAvailability
 
+export interface ViewerApplicationResponse {
+  id: string
+  status: ApplicationStatus
+  applied_at: string
+  reviewed_at?: string | null
+  withdrawn_at?: string | null
+  retry_after?: string | null
+  retry_after_estimated?: boolean
+  reapply_block_reason?: string | null
+}
+
 export interface SkillTag {
   id: string
   name: string
@@ -155,7 +166,7 @@ export interface Project {
     is_verified: boolean
   } | null
   initiator_organization?: { id: string; name: string; slug: string } | null
-  viewer_application?: { id: string; status: 'pending' | 'accepted'; applied_at: string } | null
+  viewer_application?: ViewerApplicationResponse | null
   capabilities?: {
     can_edit_definition: boolean
     can_publish: boolean

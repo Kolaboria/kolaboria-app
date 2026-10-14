@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import type { Application } from '../../types/project'
+import type { ApplicationDetailResponse } from '../../types/application'
+import { getSafePortfolioLinks } from '../../utils/application-presentation'
 
 const props = withDefaults(defineProps<{
-  application: Application | null
+  application: ApplicationDetailResponse | null
   modelValue: boolean
   submitting?: boolean
 }>(), { submitting: false })
@@ -16,12 +17,13 @@ const emit = defineEmits<{
 const reviewerNote = ref('')
 const decision = ref<'accepted' | 'rejected' | null>(null)
 const applicantName = computed(() =>
-  props.application?.profiles?.full_name || props.application?.profiles?.username || 'Talent Kolaboria'
+  props.application?.applicant_profile?.full_name || props.application?.applicant_profile?.username || 'Talent Kolaboria'
 )
 const roleName = computed(() =>
-  props.application?.project_role?.custom_title || props.application?.project_role?.contribution_role?.name || 'Kontributor'
+  props.application?.project_role?.contribution_role?.name || 'Kontributor'
 )
-const projectTitle = computed(() => props.application?.projects?.title || 'proyek ini')
+const projectTitle = computed(() => props.application?.project?.title || 'proyek ini')
+const safePortfolioLinks = computed(() => getSafePortfolioLinks(props.application?.portfolio_links))
 const statusConfig: Record<string, { label: string; classes: string }> = {
   pending: { label: 'Menunggu', classes: 'bg-accent-50 text-accent-800 ring-accent-200' },
   accepted: { label: 'Diterima', classes: 'bg-success-50 text-success-700 ring-success-200' },
@@ -91,12 +93,12 @@ const formatDate = (value: string) => new Date(value).toLocaleDateString('id-ID'
     <div v-else-if="application" class="space-y-4">
       <div class="flex items-center gap-3 border-b border-neutral-200 pb-4">
         <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-50 font-label-2 text-primary-700">
-          <img v-if="application.profiles?.avatar" :src="application.profiles.avatar" :alt="`Foto ${applicantName}`" class="h-full w-full object-cover">
+          <img v-if="application.applicant_profile?.avatar" :src="application.applicant_profile.avatar" :alt="`Foto ${applicantName}`" class="h-full w-full object-cover">
           <span v-else>{{ applicantName.slice(0, 2).toLocaleUpperCase('id-ID') }}</span>
         </div>
         <div class="min-w-0">
           <h2 class="truncate font-title-3 text-primary">{{ applicantName }}</h2>
-          <p class="mt-0.5 truncate font-body-3 text-secondary">{{ application.profiles?.headline || 'Talent Kolaboria' }}</p>
+          <p class="mt-0.5 truncate font-body-3 text-secondary">{{ application.applicant_profile?.headline || 'Talent Kolaboria' }}</p>
           <span :class="['mt-1.5 inline-flex rounded-full px-2 py-0.5 font-label-3 ring-1 ring-inset', statusConfig[application.status]?.classes]">{{ statusConfig[application.status]?.label || application.status }}</span>
         </div>
       </div>
@@ -119,15 +121,15 @@ const formatDate = (value: string) => new Date(value).toLocaleDateString('id-ID'
       <section class="border-b border-neutral-200 pb-4">
         <h3 class="font-label-2 text-primary">Keahlian &amp; tools posisi</h3>
         <div class="mt-2 flex flex-wrap gap-1.5">
-          <span v-for="skill in application.project_role?.skill_tags || []" :key="skill" class="rounded-md bg-neutral-100 px-2 py-1 font-body-3 text-neutral-600">{{ skill }}</span>
+          <span v-for="skill in application.project_role?.skills || []" :key="skill.id" class="rounded-md bg-neutral-100 px-2 py-1 font-body-3 text-neutral-600">{{ skill.name }}</span>
           <span v-for="tool in application.project_role?.tools || []" :key="tool.id" class="rounded-md bg-neutral-100 px-2 py-1 font-body-3 text-neutral-600">{{ tool.name }}</span>
-          <span v-if="!application.project_role?.skill_tags?.length && !application.project_role?.tools?.length" class="font-body-3 text-neutral-500">Belum ada keahlian atau tools posisi.</span>
+          <span v-if="!application.project_role?.skills?.length && !application.project_role?.tools?.length" class="font-body-3 text-neutral-500">Belum ada keahlian atau tools posisi.</span>
         </div>
       </section>
       <section>
         <h3 class="font-label-2 text-primary">Portofolio</h3>
-        <div v-if="application.portfolio_links?.length" class="mt-2 space-y-2">
-          <a v-for="link in application.portfolio_links" :key="link" :href="link" target="_blank" rel="noopener noreferrer" class="block truncate rounded-lg border border-neutral-200 px-3 py-2.5 font-body-3 text-primary-700 hover:border-primary-300 hover:text-primary-800">{{ link }} <Icon name="lucide:external-link" class="inline h-3.5 w-3.5" aria-hidden="true" /></a>
+        <div v-if="safePortfolioLinks.length" class="mt-2 space-y-2">
+          <a v-for="link in safePortfolioLinks" :key="link" :href="link" target="_blank" rel="noopener noreferrer" class="block truncate rounded-lg border border-neutral-200 px-3 py-2.5 font-body-3 text-primary-700 hover:border-primary-300 hover:text-primary-800">{{ link }} <Icon name="lucide:external-link" class="inline h-3.5 w-3.5" aria-hidden="true" /></a>
         </div>
         <p v-else class="mt-1.5 font-paragraph-3 text-secondary">Belum ada tautan portofolio.</p>
       </section>
@@ -139,9 +141,9 @@ const formatDate = (value: string) => new Date(value).toLocaleDateString('id-ID'
         <AtomicButton variant="outline" class="w-full sm:w-auto" :disabled="submitting" @click="decision = null">Kembali</AtomicButton>
         <AtomicButton :variant="decision === 'accepted' ? 'primary' : 'outline-danger'" class="w-full sm:w-auto" :class="decision === 'accepted' ? 'bg-primary-600! hover:bg-primary-700!' : ''" :loading="submitting" @click="submitDecision">{{ decision === 'accepted' ? 'Ya, Terima' : 'Ya, Tolak' }}</AtomicButton>
       </div>
-      <div v-else-if="application?.status === 'pending'" class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <AtomicButton variant="outline-danger" class="w-full sm:w-auto" :disabled="submitting" @click="openDecision('rejected')">Tolak Pengajuan</AtomicButton>
-        <AtomicButton variant="primary" class="w-full sm:w-auto bg-primary-600! hover:bg-primary-700!" :disabled="submitting" @click="openDecision('accepted')">Terima Kontributor</AtomicButton>
+      <div v-else-if="application?.status === 'pending' && (application.permissions.can_reject || application.permissions.can_accept)" class="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <AtomicButton v-if="application.permissions.can_reject" variant="outline-danger" class="w-full sm:w-auto" :disabled="submitting" @click="openDecision('rejected')">Tolak Pengajuan</AtomicButton>
+        <AtomicButton v-if="application.permissions.can_accept" variant="primary" class="w-full sm:w-auto bg-primary-600! hover:bg-primary-700!" :disabled="submitting" @click="openDecision('accepted')">Terima Kontributor</AtomicButton>
       </div>
       <div v-else class="flex w-full justify-end">
         <AtomicButton variant="outline" class="w-full sm:w-auto" @click="close">Tutup</AtomicButton>

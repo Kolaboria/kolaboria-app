@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { computed, reactive, ref, watch, nextTick } from 'vue'
+import { computed, effectScope, reactive, ref, watch, nextTick } from 'vue'
 import { routeLocationKey } from 'vue-router'
 import { mountSetup } from './helpers/frontend-runtime.mjs'
 
@@ -22,12 +22,14 @@ const settle = async () => {
 // and external API requests so unresolved network promises are deterministic.
 function installNuxtBoundary() {
   const states = new Map()
+  const app = { _scope: effectScope(true), runWithContext: fn => fn() }
   const token = `e30.${Buffer.from(JSON.stringify({ user_id: 'owner', username: 'owner' })).toString('base64url')}.signature`
   const globals = {
     computed, ref, watch, useProjects, useInfiniteScroll, useExperiences,
     definePageMeta() {}, useHead() {}, usePopup: () => ({ show() {} }),
     useToast: () => ({ error() {}, success() {} }),
     useCookie: () => ref(token),
+    useNuxtApp: () => app,
     useRuntimeConfig: () => ({ public: { apiBaseUrl: 'http://local-fixture' } }),
     useState: (key, init = () => null) => {
       if (!states.has(key)) states.set(key, ref(init()))

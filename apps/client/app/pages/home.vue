@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { Profile, UserSkill, UserTool } from '../types/profile'
-import type { Project, Application } from '../types/project'
+import type { Project } from '../types/project'
+import type { ApplicantStatsResponse } from '../types/application'
+import { ApplicationService } from '../services/application.service'
 
 definePageMeta({
   layout: 'home',
@@ -19,14 +21,14 @@ useHead({
 const { user } = useAuth()
 const { getProfile, getChecklist } = useProfile()
 const { getUserSkills, getUserTools } = useSkill()
-const { getMyProjects, getMyApplications } = useProjects()
+const { getMyProjects } = useProjects()
 
 const profile = ref<Profile | null>(null)
 const skills = ref<UserSkill[]>([])
 const tools = ref<UserTool[]>([])
 const checklist = ref<ReturnType<typeof getChecklist>>([])
 const myProjects = ref<Project[]>([])
-const myApplications = ref<Application[]>([])
+const applicationStats = ref<ApplicantStatsResponse | null>(null)
 const isLoading = ref(true)
 
 // Fetch active user data while gracefully falling back to prototype dummy data
@@ -35,17 +37,17 @@ const fetchAllData = async () => {
     profile.value = await getProfile()
 
     if (profile.value) {
-      const [userSkills, userTools, projects, applications] = await Promise.all([
+      const [userSkills, userTools, projects, applicationSummary] = await Promise.all([
         getUserSkills(profile.value.id).catch(() => []),
         getUserTools(profile.value.id).catch(() => []),
         getMyProjects().catch(() => []),
-        getMyApplications().catch(() => [])
+        ApplicationService.getMyApplicationSummary().catch(() => null)
       ])
 
       skills.value = userSkills
       tools.value = userTools
       myProjects.value = projects
-      myApplications.value = applications
+      applicationStats.value = applicationSummary?.data?.stats ?? null
       checklist.value = getChecklist(profile.value, userSkills, userTools)
     }
   } catch (error) {
@@ -92,7 +94,7 @@ const profileScore = computed(() => {
 const activityList = computed(() => [
   {
     label: 'Lamaran',
-    value: myApplications.value.length > 0 ? myApplications.value.length : 3,
+    value: applicationStats.value?.total ?? 0,
     description: 'Project yang sudah kamu lamar.',
     linkText: 'Lihat lamaran',
     to: '/projects/my-applications',
@@ -100,7 +102,7 @@ const activityList = computed(() => [
   },
   {
     label: 'Menunggu review',
-    value: myApplications.value.filter((a) => a.status === 'pending').length || 2,
+    value: applicationStats.value?.pending ?? 0,
     description: 'Lamaran sedang dipertimbangkan pemilik project.',
     linkText: 'Lihat status',
     to: '/projects/my-applications',
@@ -108,7 +110,7 @@ const activityList = computed(() => [
   },
   {
     label: 'Diterima',
-    value: myApplications.value.filter((a) => a.status === 'accepted').length || 1,
+    value: applicationStats.value?.accepted ?? 0,
     description: 'Kamu diterima untuk bergabung dalam project.',
     linkText: 'Lihat project',
     to: '/projects/my-applications',
@@ -580,19 +582,25 @@ const scrollToRecommended = () => {
               menunggu untuk diselesaikan
             </div>
 
-            <AtomicButton
-              variant="primary"
-              size="sm"
-              class="w-full sm:w-auto"
+            <NuxtLink
               :to="`/projects/${activeProject.workspaceSlug}/workspace`"
+              custom
+              v-slot="{ navigate }"
             >
-              <span>Buka Workspace</span>
-              <template #icon-right>
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </template>
-            </AtomicButton>
+              <AtomicButton
+                variant="primary"
+                size="sm"
+                class="w-full sm:w-auto"
+                @click="navigate"
+              >
+                <span>Buka Workspace</span>
+                <template #icon-right>
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                </template>
+              </AtomicButton>
+            </NuxtLink>
           </div>
         </OrganismCard>
 
@@ -624,14 +632,16 @@ const scrollToRecommended = () => {
           </div>
 
           <div class="mt-5">
-            <AtomicButton
-              variant="outline"
-              size="sm"
-              to="/profile/me/edit"
-              block
-            >
-              Lengkapi Profil
-            </AtomicButton>
+            <NuxtLink to="/profile/me/edit" custom v-slot="{ navigate }">
+              <AtomicButton
+                variant="outline"
+                size="sm"
+                block
+                @click="navigate"
+              >
+                Lengkapi Profil
+              </AtomicButton>
+            </NuxtLink>
           </div>
         </OrganismCard>
       </div>
@@ -990,42 +1000,60 @@ const scrollToRecommended = () => {
               <!-- ACTIONS -->
               <div class="flex gap-2">
                 <template v-if="getApplicantCount(project) > 0">
-                  <AtomicButton
-                    variant="primary"
-                    size="sm"
-                    class="flex-1"
+                  <NuxtLink
                     :to="`/projects/${project.id}/applicants`"
+                    custom
+                    v-slot="{ navigate }"
                   >
-                    Kelola Pelamar
-                    <template #icon-right>
-                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </template>
-                  </AtomicButton>
+                    <AtomicButton
+                      variant="primary"
+                      size="sm"
+                      class="flex-1"
+                      @click="navigate"
+                    >
+                      Kelola Pelamar
+                      <template #icon-right>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </template>
+                    </AtomicButton>
+                  </NuxtLink>
 
-                  <AtomicButton
-                    variant="outline"
-                    size="sm"
+                  <NuxtLink
                     :to="`/projects/${project.id}`"
+                    custom
+                    v-slot="{ navigate }"
                   >
-                    Lihat
-                  </AtomicButton>
+                    <AtomicButton
+                      variant="outline"
+                      size="sm"
+                      @click="navigate"
+                    >
+                      Lihat
+                    </AtomicButton>
+                  </NuxtLink>
                 </template>
                 <template v-else>
-                  <AtomicButton
-                    variant="primary"
-                    size="sm"
-                    block
+                  <NuxtLink
                     :to="`/projects/${project.id}`"
+                    custom
+                    v-slot="{ navigate }"
                   >
-                    Lihat Project
-                    <template #icon-right>
-                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </template>
-                  </AtomicButton>
+                    <AtomicButton
+                      variant="primary"
+                      size="sm"
+                      block
+                      @click="navigate"
+                    >
+                      Lihat Project
+                      <template #icon-right>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </template>
+                    </AtomicButton>
+                  </NuxtLink>
                 </template>
               </div>
             </aside>

@@ -4,18 +4,11 @@ import { AuthService } from '../services/auth.service'
 import type { AuthResponsePayload, User } from '../types/auth'
 import { parseCurrentUserContext } from '../utils/auth-user-context'
 import { getApiErrorStatus } from '../utils/error'
+import { useAuthSession } from './useAuthSession'
 
 export const useAuth = () => {
-  const authCookieOptions = {
-    path: '/',
-    sameSite: 'lax' as const,
-    secure: import.meta.env.PROD
-  }
-  const accessToken = useCookie<string | null>('auth_token', authCookieOptions)
-  const refreshToken = useCookie<string | null>(
-    'auth_refresh_token',
-    authCookieOptions
-  )
+  const session = useAuthSession()
+  const { accessToken, refreshToken } = session
   const user = useState<User | null>('user', () => null)
 
   const isAuthenticated = computed(() => !!accessToken.value)
@@ -41,6 +34,7 @@ export const useAuth = () => {
       throw new Error('Access token tidak memuat identitas pengguna')
     }
 
+    session.refreshedFrom = undefined
     accessToken.value = data.access_token
     refreshToken.value = data.refresh_token
     user.value = {
@@ -80,6 +74,7 @@ export const useAuth = () => {
     } catch (err) {
       console.warn('Backend logout failed', err)
     } finally {
+      session.refreshedFrom = undefined
       accessToken.value = null
       refreshToken.value = null
       user.value = null
@@ -157,7 +152,7 @@ export const useAuth = () => {
       return user.value
     } catch (err) {
       const status = getApiErrorStatus(err)
-      if (!options.preserveSessionOnError || !accessToken.value || status === 401 || status === 403 || status === 404) {
+      if (options.preserveSessionOnError === false || !accessToken.value || status === 401 || status === 403 || status === 404) {
         accessToken.value = null
         refreshToken.value = null
         user.value = null

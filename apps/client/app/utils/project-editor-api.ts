@@ -60,7 +60,7 @@ export const toProjectEditorRecord = (
     project_category: detail.project_category,
     visibility: detail.visibility,
     owner_contribution_role_id:
-      detail.owner_role?.contribution_role_id ?? undefined,
+      detail.creation_mode === 'personal' ? detail.owner_role?.contribution_role_id ?? undefined : undefined,
     origin: detail.origin,
     why_collaborative: detail.why_collaborative,
     contributor_outcome: detail.contributor_outcome,

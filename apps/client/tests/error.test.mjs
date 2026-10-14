@@ -5,6 +5,7 @@ import { createServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { test } from 'node:test'
 import ts from 'typescript'
+import { effectScope } from 'vue'
 
 const nuxtRequire = createRequire(import.meta.resolve('nuxt/package.json'))
 
@@ -26,7 +27,7 @@ registerHooks({
     return {
       format: 'module',
       shortCircuit: true,
-      source: ts.transpileModule(readFileSync(new URL(url), 'utf8'), {
+      source: ts.transpileModule(readFileSync(new URL(url), 'utf8').replaceAll('import.meta.env.PROD', 'false'), {
         compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 }
       }).outputText
     }
@@ -121,8 +122,12 @@ test('actual HTTP failures and refresh retries produce safe action errors', asyn
   const cookies = { auth_token: { value: 'old-access' }, auth_refresh_token: { value: 'old-refresh' } }
   globalThis.useRuntimeConfig = () => ({ public: { apiBaseUrl: `http://127.0.0.1:${server.address().port}` } })
   globalThis.useCookie = name => cookies[name]
+  const app = { _scope: effectScope(true), runWithContext: fn => fn() }
+  const states = new Map()
+  globalThis.useNuxtApp = () => app
+  globalThis.useState = (key, init = () => null) => { if (!states.has(key)) states.set(key, { value: init() }); return states.get(key) }
   globalThis.$fetch = ofetch.create({ retry: 0 })
-  globalThis.useFetch = (request, options) => ofetch(request, { ...options, retry: 0 })
+  globalThis.useFetch = (request, options) => (options.$fetch ?? ofetch)(request, { ...options, retry: 0 })
   globalThis.navigateTo = () => {}
   try {
     const { $api } = useApi()
@@ -160,7 +165,7 @@ test('actual HTTP failures and refresh retries produce safe action errors', asyn
     })
   } finally {
     await new Promise(resolve => server.close(resolve))
-    for (const name of ['useRuntimeConfig', 'useCookie', '$fetch', 'useFetch', 'navigateTo']) delete globalThis[name]
+    for (const name of ['useRuntimeConfig', 'useCookie', 'useNuxtApp', 'useState', '$fetch', 'useFetch', 'navigateTo']) delete globalThis[name]
   }
 })
 
