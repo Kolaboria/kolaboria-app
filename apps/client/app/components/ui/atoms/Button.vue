@@ -1,9 +1,6 @@
 <template>
-  <component
-    :is="componentType"
-    :to="to"
-    :href="href"
-    :type="isButton ? type : undefined"
+  <button
+    :type="type"
     :disabled="isDisabled"
     :class="buttonClass"
     v-bind="$attrs"
@@ -41,7 +38,7 @@
 
       <slot name="icon-right" v-if="!loading" />
     </span>
-  </component>
+  </button>
 </template>
 
 <script setup>
@@ -49,8 +46,6 @@ import { computed } from 'vue'
 
 const props = defineProps({
   label: String,
-  to: [String, Object],
-  href: String,
   type: { type: String, default: 'button' },
 
   variant: {
@@ -82,14 +77,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click'])
-
-const isButton = computed(() => !props.to && !props.href)
-
-const componentType = computed(() => {
-  if (props.to) return 'NuxtLink'
-  if (props.href) return 'a'
-  return 'button'
-})
 
 const isDisabled = computed(() => props.disabled || props.loading)
 
@@ -155,7 +142,7 @@ const sizeClasses = computed(() => {
  * 🎨 BASE STYLE
  */
 const baseClass = `
-  inline-flex items-center justify-center font-body-2 rounded-lg transition-all duration-200 focus:outline-none
+  inline-flex items-center justify-center font-body-2 rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2
 `
 
 /**

@@ -3,10 +3,13 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   show: boolean
-  action: 'open' | 'archived' | 'completed' | 'in_progress'
+  action: 'open' | 'archived' | 'completed' | 'in_progress' | 'draft' | 'delete'
   projectTitle: string
   hasActiveApplicants?: boolean | null
   deliverableCount?: number
+  pending?: boolean
+  errorMessage?: string
+  disableConfirm?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -16,6 +19,20 @@ const emit = defineEmits<{
 
 const modalContent = computed(() => {
   switch (props.action) {
+    case 'draft':
+      return {
+        title: 'Kembalikan ke Draft?',
+        message: 'Proyek akan disembunyikan dari publik dan bisa diedit sebelum dipublikasikan lagi. Aksi ini hanya tersedia jika belum ada riwayat lamaran atau kontributor.',
+        confirmText: 'Ya, Kembalikan ke Draft',
+        confirmVariant: 'primary' as const
+      }
+    case 'delete':
+      return {
+        title: 'Hapus Draft Proyek?',
+        message: 'Draft beserta posisi, skill, dan tool proyek akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
+        confirmText: 'Ya, Hapus Draft',
+        confirmVariant: 'danger' as const
+      }
     case 'open':
       return {
         title: 'Publikasikan Project?',
@@ -43,11 +60,7 @@ const modalContent = computed(() => {
     case 'archived':
       return {
         title: 'Arsipkan Project?',
-        message: props.hasActiveApplicants == null
-          ? 'Status lamaran aktif belum dapat dipastikan. Pastikan tidak ada lamaran yang perlu ditinjau sebelum mengarsipkan proyek.'
-          : props.hasActiveApplicants
-            ? 'Project akan disembunyikan. Peringatan: Ada pelamar aktif yang lamarannya akan dibatalkan.'
-            : 'Project akan disembunyikan dari publik. Kamu tetap bisa melihatnya di daftar project.',
+        message: 'Proyek akan disembunyikan dari publik dan tidak menerima lamaran baru. Riwayat lamaran dan kontributor tetap tersimpan; lamaran yang menunggu tetap dapat ditolak atau dibatalkan oleh pelamar.',
         confirmText: 'Ya, Arsipkan',
         confirmVariant: 'danger' as const
       }
@@ -67,9 +80,12 @@ const modalContent = computed(() => {
     :modelValue="show"
     @update:modelValue="emit('close')"
     :show-close="false"
+    :persistent="pending"
     secondary-label="Batal"
     :primary-label="modalContent.confirmText"
     :primary-variant="modalContent.confirmVariant"
+    :primary-loading="pending"
+    :primary-disabled="pending || disableConfirm"
     @on-secondary-click="emit('close')"
     @on-primary-click="emit('confirm')"
   >
@@ -131,6 +147,10 @@ const modalContent = computed(() => {
 
       <p class="mt-2 font-paragraph-2 text-secondary">
         {{ modalContent.message }}
+      </p>
+
+      <p v-if="errorMessage" role="alert" class="mt-4 rounded-lg bg-danger-50 p-3 font-body-3 text-danger-700">
+        {{ errorMessage }}
       </p>
 
       <div class="mt-4 rounded-lg bg-neutral-50 p-3">

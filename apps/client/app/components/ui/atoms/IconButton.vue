@@ -1,7 +1,6 @@
 <template>
   <component
     :is="componentType"
-    :to="to"
     :href="href"
     :type="isButton ? type : undefined"
     :disabled="isDisabled"
@@ -46,7 +45,6 @@ const ICON_SIZE_CLASSES = {
 }
 
 const props = defineProps({
-  to: [String, Object],
   href: String,
   type: { type: String, default: 'button' },
   title: String,
@@ -72,10 +70,9 @@ const props = defineProps({
 
 const emit = defineEmits(['click'])
 
-const isButton = computed(() => !props.to && !props.href)
+const isButton = computed(() => !props.href)
 
 const componentType = computed(() => {
-  if (props.to) return 'NuxtLink'
   if (props.href) return 'a'
   return 'button'
 })

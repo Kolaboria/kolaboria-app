@@ -7,12 +7,11 @@ import type {
   ApplyProjectRequest,
   ProjectApplicationReceipt
 } from '../types/project'
-import type { MyProjectSummaryResponse, ProjectSummaryResponse } from '../types/project-editor'
+import type { MyProjectSummaryResponse, ProjectDetailResponse, ProjectSummaryResponse } from '../types/project-editor'
 import { MasterService } from './master.service'
-import { ApplicationService } from './application.service'
 
 export const ProjectService = {
-  async getProjectSummaries(query: { page: number; limit: number; q?: string }) {
+  async getProjectSummaries(query: { page: number; limit: number; search?: string }) {
     const { $api } = useApi()
     return await $api<ApiPaginatedResponse<ProjectSummaryResponse>>(
       API_ENDPOINTS.PROJECT.LIST_OR_CREATE,
@@ -21,12 +20,13 @@ export const ProjectService = {
   },
 
   async getMyProjectSummaries(
-    query: { page: number; limit: number }
+    query: { page: number; limit: number; search?: string },
+    signal?: AbortSignal
   ) {
     const { $api } = useApi()
     return await $api<ApiPaginatedResponse<MyProjectSummaryResponse>>(
       API_ENDPOINTS.PROJECT.MY_PROJECTS,
-      { query: { scope: 'all', ...query } }
+      { query: { scope: 'all', ...query }, signal }
     )
   },
 
@@ -42,9 +42,9 @@ export const ProjectService = {
     return await $api<ApiResponse<Project>>(API_ENDPOINTS.PROJECT.DETAIL_BY_ID(id))
   },
 
-  async getProjectBySlug(slug: string) {
+  async getProjectBySlug(slug: string, signal?: AbortSignal) {
     const { $api } = useApi()
-    return await $api<ApiResponse<Project>>(API_ENDPOINTS.PROJECT.DETAIL_BY_SLUG(slug))
+    return await $api<ApiResponse<ProjectDetailResponse>>(API_ENDPOINTS.PROJECT.DETAIL_BY_SLUG(slug), { signal })
   },
 
   async createProject(payload: CreateProjectPayload) {
@@ -104,11 +104,6 @@ export const ProjectService = {
       method: 'POST',
       body: payload
     })
-  },
-
-  async getProjectApplicants(projectId: string) {
-    const { $api } = useApi()
-    return await $api<ApiResponse<any[]>>(API_ENDPOINTS.PROJECT.APPLICANTS(projectId))
   },
 
   /**
@@ -175,10 +170,5 @@ export const ProjectService = {
 
   // Delegated to MasterService (eliminated duplication)
   getSkills: MasterService.getSkills,
-  getTools: MasterService.getTools,
-
-  // Delegated to ApplicationService (separated domain)
-  getMyApplications: ApplicationService.getMyApplications,
-  reviewApplication: ApplicationService.reviewApplication,
-  withdrawApplication: ApplicationService.withdrawApplication
+  getTools: MasterService.getTools
 }

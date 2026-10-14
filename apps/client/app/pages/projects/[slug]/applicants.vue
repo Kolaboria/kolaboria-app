@@ -1,566 +1,175 @@
 <script setup lang="ts">
-import {
-  ArrowDownUp,
-  ChevronDown,
-  Funnel,
-  SlidersHorizontal
-} from '@lucide/vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { ArrowDownUp, ChevronDown, Funnel, SlidersHorizontal } from '@lucide/vue'
 import { useInfiniteScroll } from '~/composables/useInfiniteScroll'
-import type { Application, Project } from '~/types/project'
+import { useProjectApplicants } from '~/composables/useProjectApplicants'
+import { ApplicationService } from '~/services/application.service'
+import { ProjectService } from '~/services/project.service'
+import { toProjectDetailView } from '~/utils/project-presentation'
+import { toApplicantCardView, type ApplicantCardView } from '~/utils/application-presentation'
+import type { ApplicationListQuery, ApplicationStatus } from '~/types/application'
+import type { Project } from '~/types/project'
 import ApplicantDetailModal from '~/components/project/ApplicantDetailModal.vue'
 
-definePageMeta({ layout: 'home' })
+definePageMeta({ layout: 'home', middleware: ['auth'] })
 const route = useRoute()
-const projectSlug = route.params.slug as string
-const { show: showPopup } = usePopup()
-
-const demoProjectId = 'demo-project-portfolio'
-const frontendRole = {
-  id: 'demo-role-frontend',
-  contribution_role_id: 'role-frontend',
-  contribution_role: {
-    id: 'role-frontend',
-    name: 'Frontend Developer',
-    slug: 'frontend-developer',
-    category: 'contribution_role'
-  },
-  custom_title: null,
-  description: 'Membangun antarmuka yang cepat dan mudah digunakan.',
-  capacity: 2,
-  filled_capacity: 1,
-  remaining_capacity: 1,
-  status: 'open' as const,
-  tools: [
-    { id: 'tool-vue', name: 'Vue.js', slug: 'vue-js', category: 'tool' },
-    { id: 'tool-nuxt', name: 'Nuxt', slug: 'nuxt', category: 'tool' }
-  ],
-  skill_tags: ['TypeScript', 'Responsive UI']
-}
-const designRole = {
-  id: 'demo-role-design',
-  contribution_role_id: 'role-design',
-  contribution_role: {
-    id: 'role-design',
-    name: 'UI/UX Designer',
-    slug: 'ui-ux-designer',
-    category: 'contribution_role'
-  },
-  custom_title: null,
-  description: 'Merancang pengalaman pengguna dan sistem visual produk.',
-  capacity: 2,
-  filled_capacity: 0,
-  remaining_capacity: 2,
-  status: 'open' as const,
-  tools: [{ id: 'tool-figma', name: 'Figma', slug: 'figma', category: 'tool' }],
-  skill_tags: ['UI/UX', 'Prototyping']
-}
-const backendRole = {
-  id: 'demo-role-backend',
-  contribution_role_id: 'role-backend',
-  contribution_role: {
-    id: 'role-backend',
-    name: 'Backend Developer',
-    slug: 'backend-developer',
-    category: 'contribution_role'
-  },
-  custom_title: null,
-  description: 'Mengembangkan API dan pengelolaan data proyek.',
-  capacity: 1,
-  filled_capacity: 0,
-  remaining_capacity: 1,
-  status: 'open' as const,
-  tools: [{ id: 'tool-go', name: 'Go', slug: 'go', category: 'tool' }],
-  skill_tags: ['REST API', 'PostgreSQL']
-}
-
-const DEMO_PROJECT: Project = {
-  id: demoProjectId,
-  creator_id: 'demo-project-owner',
-  title: 'Platform Portofolio untuk Talenta Digital',
-  slug: 'platform-portofolio-talenta-digital',
-  summary: 'Ruang untuk talenta digital menyusun dan membagikan karya.',
-  description: null,
-  project_category: 'product',
-  visibility: 'public',
-  status: 'open',
-  max_slots: 5,
-  availability: 'part_time',
-  start_date: null,
-  deadline: null,
-  why_join: null,
-  created_at: '2026-10-01T08:00:00.000Z',
-  published_at: '2026-10-02T08:00:00.000Z',
-  creation_mode: 'personal',
-  project_roles: [frontendRole, designRole, backendRole]
-}
-
-const createDemoApplication = (application: {
-  id: string
-  name: string
-  username: string
-  headline: string
-  role: typeof frontendRole | typeof designRole | typeof backendRole
-  status: Application['status']
-  appliedAt: string
-  availability: Application['availability']
-  motivation: string
-  contribution: string
-  portfolio?: string[]
-  reviewerNote?: string | null
-}): Application => ({
-  id: application.id,
-  project_id: demoProjectId,
-  applicant_id: `demo-user-${application.username}`,
-  motivation: application.motivation,
-  expected_contribution: application.contribution,
-  portfolio_links: application.portfolio || [],
-  availability: application.availability,
-  status: application.status,
-  reviewer_note: application.reviewerNote || null,
-  applied_at: application.appliedAt,
-  project_role_id: application.role.id,
-  project_role: application.role,
-  estimated_hours_per_week: 20,
-  reviewed_by: application.status === 'pending' ? null : 'demo-project-owner',
-  reviewed_at: application.status === 'pending' ? null : application.appliedAt,
-  profiles: {
-    username: application.username,
-    full_name: application.name,
-    avatar: null,
-    headline: application.headline,
-    completion_score: 85
-  },
-  projects: {
-    id: demoProjectId,
-    title: DEMO_PROJECT.title,
-    slug: DEMO_PROJECT.slug,
-    status: DEMO_PROJECT.status
-  }
-})
-
-const DEMO_APPLICATIONS: Application[] = [
-  createDemoApplication({
-    id: 'demo-application-rizky',
-    name: 'Rizky Pratama',
-    username: 'rizkypratama',
-    headline: 'Frontend Developer · Vue & Nuxt',
-    role: frontendRole,
-    status: 'pending',
-    appliedAt: '2026-10-09T08:30:00.000Z',
-    availability: 'part_time',
-    motivation:
-      'Saya tertarik membangun produk yang membantu talenta membuktikan kemampuan melalui pengalaman nyata. Saya ingin belajar sambil memberikan kontribusi yang dapat digunakan.',
-    contribution:
-      'Membangun reusable component, integrasi API, dan responsive layout.',
-    portfolio: ['https://github.com/example/frontend']
-  }),
-  createDemoApplication({
-    id: 'demo-application-nadia',
-    name: 'Nadia Putri',
-    username: 'nadiaputri',
-    headline: 'Product Designer · Figma & Research',
-    role: designRole,
-    status: 'pending',
-    appliedAt: '2026-10-08T07:45:00.000Z',
-    availability: 'flexible',
-    motivation:
-      'Saya ingin membantu membuat pengalaman produk terasa lebih jelas dan ramah untuk talenta digital.',
-    contribution: 'Riset pengguna, alur onboarding, dan prototipe interaktif.',
-    portfolio: ['https://behance.net/example/nadia']
-  }),
-  createDemoApplication({
-    id: 'demo-application-dimas',
-    name: 'Dimas Saputra',
-    username: 'dimassaputra',
-    headline: 'Backend Developer · Go & PostgreSQL',
-    role: backendRole,
-    status: 'pending',
-    appliedAt: '2026-10-07T10:10:00.000Z',
-    availability: 'part_time',
-    motivation:
-      'Saya tertarik ikut merancang fondasi layanan yang aman dan mudah dikembangkan.',
-    contribution: 'Membuat endpoint, validasi data, dan dokumentasi API.'
-  }),
-  createDemoApplication({
-    id: 'demo-application-sarah',
-    name: 'Sarah Amelia',
-    username: 'sarahamelia',
-    headline: 'UI/UX Designer · Design System',
-    role: designRole,
-    status: 'pending',
-    appliedAt: '2026-10-06T06:15:00.000Z',
-    availability: 'weekends_only',
-    motivation:
-      'Saya ingin mengembangkan pengalaman kolaboratif bersama tim lintas disiplin.',
-    contribution: 'Menyusun komponen desain dan panduan antarmuka.'
-  }),
-  createDemoApplication({
-    id: 'demo-application-budi',
-    name: 'Budi Santoso',
-    username: 'budisantoso',
-    headline: 'Full Stack Developer · Vue & Go',
-    role: frontendRole,
-    status: 'pending',
-    appliedAt: '2026-10-05T09:00:00.000Z',
-    availability: 'full_time',
-    motivation:
-      'Saya ingin membantu mewujudkan platform portofolio yang berguna bagi komunitas.',
-    contribution:
-      'Membangun halaman produk dan menghubungkannya dengan layanan backend.'
-  }),
-  createDemoApplication({
-    id: 'demo-application-fajar',
-    name: 'Fajar Ramadhan',
-    username: 'fajarramadhan',
-    headline: 'Frontend Developer · TypeScript',
-    role: frontendRole,
-    status: 'accepted',
-    appliedAt: '2026-10-04T08:20:00.000Z',
-    availability: 'part_time',
-    motivation:
-      'Saya ingin berkontribusi pada produk yang mendukung perjalanan karier talenta.',
-    contribution: 'Merapikan komponen dan membantu menjaga kualitas antarmuka.',
-    reviewerNote: 'Selamat bergabung dengan tim!'
-  }),
-  createDemoApplication({
-    id: 'demo-application-intan',
-    name: 'Intan Permata',
-    username: 'intanpermata',
-    headline: 'Product Designer · UI/UX',
-    role: designRole,
-    status: 'rejected',
-    appliedAt: '2026-10-03T05:35:00.000Z',
-    availability: 'flexible',
-    motivation: 'Saya tertarik berkolaborasi dan belajar bersama tim produk.',
-    contribution: 'Membantu merancang halaman portofolio yang mudah digunakan.',
-    reviewerNote:
-      'Terima kasih sudah mengajukan diri. Saat ini posisi sudah terisi.'
-  })
-]
-
-// Fixture lokal agar halaman ini dapat dipreview tanpa memanggil API.
-const project = ref<Project>(structuredClone(DEMO_PROJECT))
-const applications = ref<Application[]>(structuredClone(DEMO_APPLICATIONS))
-
-useHead(() => ({
-  title: project.value ? `Pelamar: ${project.value.title}` : 'Kelola Pelamar'
-}))
-
-const searchQuery = ref('')
-const selectedStatuses = ref<Application['status'][]>([])
+const toast = useToast()
+const projectSlug = computed(() => String(route.params.slug ?? ''))
+const { currentUserId } = useAuth()
+const accountId = computed(() => currentUserId.value)
+const project = ref<Project | null>(null)
+useHead(() => ({ title: project.value ? `Pelamar: ${project.value.title} — Kolaboria` : 'Kelola Pelamar — Kolaboria' }))
+const projectError = ref<unknown>(null)
+const projectPending = ref(false)
+const query = ref<ApplicationListQuery>({ page: 1, limit: 5, sort: 'newest' })
+const selectedStatuses = ref<ApplicationStatus[]>([])
 const selectedRoles = ref<string[]>([])
+const searchQuery = ref('')
+const searchInput = ref('')
 const sortOrder = ref<'newest' | 'oldest'>('newest')
 const isMobileFilterOpen = ref(false)
 const isMobileSortOpen = ref(false)
 const isMobileStatusFilterOpen = ref(false)
 const isMobileRoleFilterOpen = ref(false)
 const isModalOpen = ref(false)
-const selectedApplicant = ref<Application | null>(null)
-const isSubmitting = ref(false)
 const isDesktop = ref(false)
 const currentPage = ref(1)
-const mobileDisplayCount = ref(5)
 const pageSize = 5
-const mobileStep = 5
 let mediaQuery: MediaQueryList | null = null
+let projectRequest = 0
 
-const filters = [
+watch([selectedStatuses, selectedRoles, searchQuery, sortOrder], () => {
+  query.value = {
+    page: 1,
+    limit: pageSize,
+    search: searchQuery.value || undefined,
+    statuses: [...selectedStatuses.value],
+    project_role_ids: [...selectedRoles.value],
+    sort: sortOrder.value
+  }
+  currentPage.value = 1
+}, { deep: true })
+
+const projectId = computed(() => project.value?.id ?? null)
+const applicants = useProjectApplicants(accountId, projectId, query, ApplicationService)
+const summary = applicants.summary
+const applications = computed(() => applicants.items.value.map(toApplicantCardView))
+const filteredApplications = applications
+const selectedApplicant = applicants.detail
+const isSubmitting = applicants.submitting
+const isLoading = computed(() => projectPending.value || applicants.pending.value)
+const stats = computed(() => summary.value?.stats ?? { total: 0, pending: 0, accepted: 0, rejected: 0, withdrawn: 0 })
+const totalCapacity = computed(() => summary.value?.capacity.total_capacity ?? 0)
+const filledCapacity = computed(() => summary.value?.capacity.filled_capacity ?? 0)
+const capacityProgress = computed(() => totalCapacity.value ? Math.min(100, (filledCapacity.value / totalCapacity.value) * 100) : 0)
+const roleOptions = computed(() => (summary.value?.roles ?? []).map((role) => ({ value: role.id, label: role.name })))
+const totalPages = computed(() => Math.max(1, applicants.meta.value?.total_pages ?? 0))
+const hasMoreMobile = applicants.hasMore
+const displayedApplications = applications
+const displayedCount = computed(() => displayedApplications.value.length)
+const filteredTotal = computed(() => applicants.meta.value?.total ?? 0)
+const error = applicants.error
+const loadMoreError = applicants.loadMoreError
+
+const filters: Array<{ label: string; value: ApplicationStatus }> = [
   { label: 'Menunggu', value: 'pending' },
   { label: 'Diterima', value: 'accepted' },
   { label: 'Ditolak', value: 'rejected' },
   { label: 'Dibatalkan', value: 'withdrawn' }
-] as const
-
-const getName = (application: Application) =>
-  application.profiles?.full_name ||
-  application.profiles?.username ||
-  'Talent Kolaboria'
-
-const getRoleName = (application: Application) =>
-  application.project_role?.custom_title ||
-  application.project_role?.contribution_role?.name ||
-  'Kontributor'
-
-const stats = computed(() => {
-  const all = applications.value || []
-  return {
-    total: all.length,
-    pending: all.filter((application) => application.status === 'pending')
-      .length,
-    accepted: all.filter((application) => application.status === 'accepted')
-      .length,
-    rejected: all.filter((application) => application.status === 'rejected')
-      .length,
-    withdrawn: all.filter((application) => application.status === 'withdrawn')
-      .length
-  }
-})
-
-const totalCapacity = computed(() => {
-  const roles = project.value?.project_roles || []
-  return roles.length
-    ? roles.reduce((sum, role) => sum + role.capacity, 0)
-    : project.value?.max_slots || 0
-})
-const filledCapacity = computed(() => {
-  const roles = project.value?.project_roles || []
-  return roles.length
-    ? roles.reduce((sum, role) => sum + role.filled_capacity, 0)
-    : 0
-})
-const capacityProgress = computed(() =>
-  totalCapacity.value
-    ? Math.min(100, (filledCapacity.value / totalCapacity.value) * 100)
-    : 0
-)
-const roleOptions = computed(() => {
-  const seen = new Set<string>()
-  return (project.value?.project_roles || []).flatMap((role) => {
-    const title = role.custom_title || role.contribution_role?.name
-    if (!title || seen.has(role.id)) return []
-    seen.add(role.id)
-    return [{ value: role.id, label: title }]
-  })
-})
+]
 const sortOptions = [
   { label: 'Terbaru', value: 'newest' },
   { label: 'Terlama', value: 'oldest' }
 ]
-
-const isAllStatusesSelected = computed(
-  () => selectedStatuses.value.length === 0
-)
+const availabilityLabels: Record<string, string> = {
+  flexible: 'Fleksibel', full_time: 'Penuh waktu', part_time: 'Paruh waktu', weekends_only: 'Hanya akhir pekan'
+}
+const statusConfig: Record<string, { label: string; classes: string }> = {
+  pending: { label: 'Menunggu', classes: 'bg-accent-50 text-accent-800 ring-accent-200' },
+  accepted: { label: 'Diterima', classes: 'bg-success-50 text-success-700 ring-success-200' },
+  rejected: { label: 'Ditolak', classes: 'bg-danger-50 text-danger-700 ring-danger-200' },
+  withdrawn: { label: 'Dibatalkan', classes: 'bg-neutral-100 text-neutral-600 ring-neutral-200' }
+}
+const projectStatusLabel = computed(() => ({
+  open: 'Menerima Kontributor', awaiting_owner: 'Menunggu Project Lead', in_progress: 'Sedang berjalan',
+  completed: 'Selesai', archived: 'Diarsipkan', draft: 'Draf'
+}[project.value?.status || 'draft']))
+const isAllStatusesSelected = computed(() => selectedStatuses.value.length === 0)
 const isAllRolesSelected = computed(() => selectedRoles.value.length === 0)
-const activeFilterCount = computed(
-  () => selectedStatuses.value.length + selectedRoles.value.length
-)
+const activeFilterCount = computed(() => selectedStatuses.value.length + selectedRoles.value.length)
+const statusFilterLabel = computed(() => selectedStatuses.value.length ? `${selectedStatuses.value.length} Status` : 'Status')
+const roleFilterLabel = computed(() => selectedRoles.value.length ? `${selectedRoles.value.length} Posisi` : 'Posisi')
+const getName = (application: ApplicantCardView) => application.applicant_profile?.full_name || application.applicant_profile?.username || 'Talent Kolaboria'
+const getRoleName = (application: ApplicantCardView) => application.project_role.contribution_role?.name || 'Kontributor'
+const formatDate = (value: string) => new Date(value).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 
-const toggleAllStatuses = (checked: boolean) => {
-  if (checked) selectedStatuses.value = []
+const toggleAllStatuses = (checked: boolean) => { if (checked) selectedStatuses.value = [] }
+const toggleStatus = (status: ApplicationStatus) => {
+  selectedStatuses.value = selectedStatuses.value.includes(status) ? selectedStatuses.value.filter((item) => item !== status) : [...selectedStatuses.value, status]
 }
-const toggleStatus = (status: Application['status']) => {
-  selectedStatuses.value = selectedStatuses.value.includes(status)
-    ? selectedStatuses.value.filter((item) => item !== status)
-    : [...selectedStatuses.value, status]
-}
-const toggleAllRoles = (checked: boolean) => {
-  if (checked) selectedRoles.value = []
-}
+const toggleAllRoles = (checked: boolean) => { if (checked) selectedRoles.value = [] }
 const toggleRole = (roleId: string) => {
-  selectedRoles.value = selectedRoles.value.includes(roleId)
-    ? selectedRoles.value.filter((item) => item !== roleId)
-    : [...selectedRoles.value, roleId]
+  selectedRoles.value = selectedRoles.value.includes(roleId) ? selectedRoles.value.filter((item) => item !== roleId) : [...selectedRoles.value, roleId]
 }
+const resetListPosition = () => { currentPage.value = 1 }
 const resetFilters = () => {
-  selectedStatuses.value = []
-  selectedRoles.value = []
-  searchQuery.value = ''
-  sortOrder.value = 'newest'
-  resetListPosition()
+  selectedStatuses.value = []; selectedRoles.value = []; searchQuery.value = ''; searchInput.value = ''; sortOrder.value = 'newest'; resetListPosition()
 }
-const statusFilterLabel = computed(() => {
-  if (selectedStatuses.value.length === 0) return 'Status'
-  if (selectedStatuses.value.length > 1)
-    return `${selectedStatuses.value.length} Status`
-  const selected = filters.find(
-    (filter) => filter.value === selectedStatuses.value[0]
-  )
-  return selected?.label || 'Status'
-})
-const roleFilterLabel = computed(() => {
-  if (selectedRoles.value.length === 0) return 'Posisi'
-  if (selectedRoles.value.length > 1)
-    return `${selectedRoles.value.length} Posisi`
-  return (
-    roleOptions.value.find((role) => role.value === selectedRoles.value[0])
-      ?.label || 'Posisi'
-  )
-})
+const onLoadMore = () => applicants.loadMore()
+const { sentinelRef, isLoading: loadingMore } = useInfiniteScroll({ onLoadMore, hasMore: hasMoreMobile, disabled: computed(() => isDesktop.value), distance: '180px' })
 
-const filteredApplications = computed(() => {
-  let result = [...(applications.value || [])]
-  if (selectedStatuses.value.length > 0) {
-    result = result.filter((application) =>
-      selectedStatuses.value.includes(application.status)
-    )
-  }
-  if (selectedRoles.value.length > 0) {
-    result = result.filter((application) =>
-      selectedRoles.value.includes(application.project_role_id)
-    )
-  }
-  const query = searchQuery.value.trim().toLocaleLowerCase('id-ID')
-  if (query) {
-    result = result.filter((application) => {
-      const searchable = [
-        getName(application),
-        application.profiles?.username,
-        application.profiles?.headline,
-        getRoleName(application),
-        application.motivation,
-        application.expected_contribution,
-        ...(application.project_role?.tools || []).map((tool) => tool.name),
-        ...(application.project_role?.skill_tags || [])
-      ]
-      return searchable.some((value) =>
-        value?.toLocaleLowerCase('id-ID').includes(query)
-      )
-    })
-  }
-  result.sort((a, b) => {
-    const difference =
-      new Date(a.applied_at).getTime() - new Date(b.applied_at).getTime()
-    return sortOrder.value === 'newest' ? -difference : difference
-  })
-  return result
+watch(currentPage, (page) => {
+  if (isDesktop.value && page > 0 && page !== applicants.meta.value?.page) void applicants.loadPage(page)
 })
-
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredApplications.value.length / pageSize))
-)
-const hasMoreMobile = computed(
-  () => mobileDisplayCount.value < filteredApplications.value.length
-)
-const displayedApplications = computed(() => {
-  if (isDesktop.value) {
-    const start = (currentPage.value - 1) * pageSize
-    return filteredApplications.value.slice(start, start + pageSize)
-  }
-  return filteredApplications.value.slice(0, mobileDisplayCount.value)
-})
-const displayedCount = computed(() => displayedApplications.value.length)
-
-const { sentinelRef, isLoading: loadingMore } = useInfiniteScroll({
-  onLoadMore: () => {
-    mobileDisplayCount.value += mobileStep
-  },
-  hasMore: hasMoreMobile,
-  disabled: isDesktop,
-  distance: '180px'
-})
-
-const resetListPosition = () => {
-  currentPage.value = 1
-  mobileDisplayCount.value = mobileStep
-}
-watch(
-  [selectedStatuses, selectedRoles, searchQuery, sortOrder],
-  resetListPosition,
-  { deep: true }
-)
-watch(filteredApplications, () => {
-  currentPage.value = Math.min(currentPage.value, totalPages.value)
-})
-
 const handleMediaChange = (event: MediaQueryListEvent | MediaQueryList) => {
   isDesktop.value = event.matches
-  resetListPosition()
+  currentPage.value = 1
 }
 onMounted(() => {
-  mediaQuery = window.matchMedia('(min-width: 768px)')
+  mediaQuery = window.matchMedia('(min-width: 1024px)')
   isDesktop.value = mediaQuery.matches
   mediaQuery.addEventListener('change', handleMediaChange)
+  void loadProject()
 })
 onUnmounted(() => mediaQuery?.removeEventListener('change', handleMediaChange))
+watch(projectSlug, () => { void loadProject() })
 
-const openModal = (application: Application) => {
-  selectedApplicant.value = application
-  isModalOpen.value = true
-}
-const handleReviewed = async (
-  status: 'accepted' | 'rejected',
-  note: string
-) => {
-  if (!selectedApplicant.value) return
-  isSubmitting.value = true
+async function loadProject() {
+  const request = ++projectRequest
+  projectPending.value = true
+  projectError.value = null
+  project.value = null
   try {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    const application = applications.value.find(
-      (item) => item.id === selectedApplicant.value?.id
-    )
-    if (!application || application.status !== 'pending') return
-
-    if (status === 'accepted') {
-      const role = project.value.project_roles?.find(
-        (item) => item.id === application.project_role_id
-      )
-      if (!role || role.remaining_capacity <= 0) {
-        showPopup({
-          title: 'Slot posisi sudah penuh',
-          description:
-            'Pilih pengajuan untuk posisi yang masih memiliki slot tersedia.',
-          type: 'warning',
-          positiveLabel: 'Mengerti'
-        })
-        return
-      }
-      role.filled_capacity += 1
-      role.remaining_capacity -= 1
-      if (role.remaining_capacity === 0) role.status = 'filled'
-      applications.value
-        .filter((item) => item.project_role_id === role.id && item.project_role)
-        .forEach((item) => {
-          item.project_role = structuredClone(role)
-        })
-    }
-
-    application.status = status
-    application.reviewer_note = note || null
-    application.reviewed_at = new Date().toISOString()
-    isModalOpen.value = false
-    selectedApplicant.value = null
+    const response = await ProjectService.getProjectBySlug(projectSlug.value)
+    if (request !== projectRequest) return
+    if (!response.data) throw new Error('Proyek tidak ditemukan.')
+    project.value = toProjectDetailView(response.data)
+  } catch (failure) {
+    if (request === projectRequest) projectError.value = failure
   } finally {
-    isSubmitting.value = false
+    if (request === projectRequest) projectPending.value = false
   }
 }
 
-const statusConfig: Record<string, { label: string; classes: string }> = {
-  pending: {
-    label: 'Menunggu',
-    classes: 'bg-accent-50 text-accent-800 ring-accent-200'
-  },
-  accepted: {
-    label: 'Diterima',
-    classes: 'bg-success-50 text-success-700 ring-success-200'
-  },
-  rejected: {
-    label: 'Ditolak',
-    classes: 'bg-danger-50 text-danger-700 ring-danger-200'
-  },
-  withdrawn: {
-    label: 'Dibatalkan',
-    classes: 'bg-neutral-100 text-neutral-600 ring-neutral-200'
+const openModal = async (application: ApplicantCardView) => {
+  await applicants.openDetail(application.id)
+  if (applicants.detail.value) isModalOpen.value = true
+  else toast.error('Detail pengajuan belum dapat dimuat.')
+}
+const closeModal = () => { isModalOpen.value = false; applicants.closeDetail() }
+const handleReviewed = async (status: 'accepted' | 'rejected', note: string) => {
+  try {
+    await applicants.review(status, note)
+    closeModal()
+  } catch {
+    toast.error('Keputusan belum tersimpan. Periksa koneksi dan coba lagi.')
   }
 }
-
-const availabilityLabels: Record<string, string> = {
-  flexible: 'Fleksibel',
-  full_time: 'Penuh waktu',
-  part_time: 'Paruh waktu',
-  weekends_only: 'Hanya akhir pekan'
-}
-
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
-  })
-const projectStatusLabel = computed(
-  () =>
-    ({
-      open: 'Menerima Kontributor',
-      awaiting_owner: 'Menunggu Project Lead',
-      in_progress: 'Sedang berjalan',
-      completed: 'Selesai',
-      archived: 'Diarsipkan',
-      draft: 'Draf'
-    })[project.value?.status || 'draft']
-)
+const retryLoad = () => projectError.value ? loadProject() : applicants.refresh()
 </script>
 
 <template>
-  <main class="min-h-screen bg-neutral-50 pb-10 pt-5 sm:pt-8">
+  <main v-if="project && !projectError" class="min-h-screen bg-neutral-50 pb-10 pt-5 sm:pt-8">
     <div class="mx-auto max-w-7xl">
       <nav
         class="mb-4 flex items-center gap-2 font-body-3 text-neutral-500"
@@ -589,24 +198,26 @@ const projectStatusLabel = computed(
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <span
-            class="rounded-full bg-accent-50 px-3 py-1.5 font-label-3 text-accent-900"
-            >Simulasi konsep produk</span
-          >
-          <AtomicButton
+          <NuxtLink
             :to="`/projects/${projectSlug}`"
-            variant="outline"
-            size="sm"
-            class="self-start sm:self-auto"
+            custom
+            v-slot="{ navigate }"
           >
-            <template #icon-left
-              ><Icon
-                name="lucide:arrow-left"
-                class="h-4 w-4"
-                aria-hidden="true"
-            /></template>
-            Kembali ke Proyek
-          </AtomicButton>
+            <AtomicButton
+              variant="outline"
+              size="sm"
+              class="self-start sm:self-auto"
+              @click="navigate"
+            >
+              <template #icon-left
+                ><Icon
+                  name="lucide:arrow-left"
+                  class="h-4 w-4"
+                  aria-hidden="true"
+              /></template>
+              Kembali ke Proyek
+            </AtomicButton>
+          </NuxtLink>
         </div>
       </header>
 
@@ -821,7 +432,7 @@ const projectStatusLabel = computed(
             <div class="mb-4 hidden items-center justify-between gap-4 lg:flex">
               <p class="font-body-2 text-secondary">
                 Menampilkan
-                <strong>{{ filteredApplications.length }}</strong> pengajuan
+                <strong>{{ filteredTotal }}</strong> pengajuan
               </p>
               <div class="w-48 shrink-0">
                 <MoleculeDropdown
@@ -835,7 +446,7 @@ const projectStatusLabel = computed(
             <div class="mb-4 block lg:hidden">
               <p class="mb-3 font-body-2 text-secondary">
                 Menampilkan {{ displayedCount }} dari
-                {{ filteredApplications.length }} pengajuan
+                {{ filteredTotal }} pengajuan
               </p>
               <div
                 class="-mx-1 flex items-center gap-2 overflow-x-auto px-1 py-2 scrollbar-none"
@@ -903,14 +514,22 @@ const projectStatusLabel = computed(
 
             <div class="mb-4">
               <MoleculeSearchField
-                v-model="searchQuery"
-                placeholder="Cari nama, skill, atau kontribusi..."
-                :debounce-ms="200"
+                v-model="searchInput"
+                @search="searchQuery = $event"
+                placeholder="Cari nama, skill, atau kontribusi (minimal 3 karakter)..."
                 aria-label="Cari nama, skill, atau kontribusi"
               />
             </div>
 
-            <div v-if="displayedApplications.length" class="space-y-3">
+            <div v-if="isLoading" class="rounded-xl border border-neutral-200 bg-white p-8 text-center font-body-2 text-secondary" role="status">
+              Memuat data pelamar...
+            </div>
+            <div v-else-if="error" class="rounded-xl border border-danger-200 bg-white p-6 text-center">
+              <p class="font-label-2 text-primary">Data pelamar belum dapat dimuat</p>
+              <p class="mt-1 font-body-3 text-secondary">Coba lagi untuk memuat data terbaru.</p>
+              <AtomicButton class="mt-4" variant="outline" @click="retryLoad">Coba lagi</AtomicButton>
+            </div>
+            <div v-else-if="displayedApplications.length" class="space-y-3">
               <OrganismCard
                 v-for="application in displayedApplications"
                 :key="application.id"
@@ -991,7 +610,7 @@ const projectStatusLabel = computed(
                           application.project_role?.tools?.length
                         "
                         class="mt-2.5 flex flex-wrap gap-1.5"
-                        aria-label="Skill dan tools pelamar"
+                        aria-label="Skill dan tools posisi"
                       >
                         <span
                           v-for="skill in application.project_role
@@ -1071,7 +690,7 @@ const projectStatusLabel = computed(
               <MoleculePagination
                 v-model="currentPage"
                 :total-pages="totalPages"
-                :total-items="filteredApplications.length"
+                :total-items="filteredTotal"
                 :per-page="pageSize"
                 align="end"
               />
@@ -1223,7 +842,16 @@ const projectStatusLabel = computed(
       :application="selectedApplicant"
       :submitting="isSubmitting"
       @reviewed="handleReviewed"
+      @close="closeModal"
     />
+  </main>
+  <main v-else class="mx-auto min-h-[60vh] max-w-3xl px-4 py-16 text-center">
+    <p v-if="projectPending" class="font-body-2 text-secondary" role="status">Memuat proyek...</p>
+    <div v-else>
+      <p class="font-title-3 text-primary">Proyek tidak dapat dimuat</p>
+      <p class="mt-2 font-body-2 text-secondary">Periksa akses atau coba muat ulang data proyek.</p>
+      <AtomicButton class="mt-5" variant="outline" @click="retryLoad">Coba lagi</AtomicButton>
+    </div>
   </main>
 </template>
 

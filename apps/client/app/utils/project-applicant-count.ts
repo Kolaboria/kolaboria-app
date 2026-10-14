@@ -4,8 +4,11 @@ export const sumPendingApplicantCounts = (
 ): number | null => {
   if (projectIds.length === 0) return 0
 
-  const counts = projectIds.map(id => countsByProject[id])
-  if (counts.some(count => count == null)) return null
-
-  return counts.reduce((total, count) => total + (count ?? 0), 0)
+  let total = 0
+  for (const projectId of projectIds) {
+    const count = countsByProject[projectId]
+    if (count === null || count === undefined) return null
+    total += count
+  }
+  return total
 }

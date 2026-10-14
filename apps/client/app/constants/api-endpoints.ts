@@ -70,11 +70,14 @@ export const API_ENDPOINTS = {
     PUBLISH: (id: string) => `/projects/${id}/publish`,
     START: (id: string) => `/projects/${id}/start`,
     APPLY: (id: string) => `/projects/${id}/apply`,
-    APPLICANTS: (id: string) => `/projects/${id}/applicants`
+    APPLICANTS: (id: string) => `/projects/${id}/applicants`,
+    APPLICANT_SUMMARY: (id: string) => `/projects/${id}/applicants/summary`
   },
 
   APPLICATION: {
     MY_APPLICATIONS: '/applications/my-applications',
+    MY_APPLICATION_SUMMARY: '/applications/my-applications/summary',
+    DETAIL: (id: string) => `/applications/${id}`,
     REVIEW: (id: string) => `/applications/${id}/review`,
     WITHDRAW: (id: string) => `/applications/${id}/withdraw`
   },

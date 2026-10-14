@@ -51,9 +51,15 @@ onMounted(async () => {
       class="border border-dashed border-neutral-300 py-16"
     >
       <template #action>
-        <AtomicButton variant="primary" to="/projects/create">
-          Mulai Project Pertama
-        </AtomicButton>
+        <NuxtLink
+          to="/projects/create"
+          custom
+          v-slot="{ navigate }"
+        >
+          <AtomicButton variant="primary" @click="navigate">
+            Mulai Project Pertama
+          </AtomicButton>
+        </NuxtLink>
       </template>
     </OrganismEmptyState>
 

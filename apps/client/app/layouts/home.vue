@@ -1,85 +1,90 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { FileText, Folder, House, UserRound } from '@lucide/vue'
-import type { Profile } from '../types/profile'
-import { getProfileEditPageMeta } from '../data/profile-edit-navigation'
-import type { HomeNavbarConfig } from '../types/home-navbar'
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { FileText, Folder, House, UserRound } from "@lucide/vue";
+import type { Profile } from "../types/profile";
+import { getProfileEditPageMeta } from "../data/profile-edit-navigation";
+import type { HomeNavbarConfig } from "../types/home-navbar";
 
-const { logout: signOut, user } = useAuth()
-const { getProfile } = useProfile()
-const router = useRouter()
-const route = useRoute()
+const { logout: signOut, user } = useAuth();
+const { getProfile } = useProfile();
+const router = useRouter();
+const route = useRoute();
 
-const isUserDropdownOpen = ref(false)
-const userMenuRef = ref<HTMLElement | null>(null)
-const userProfile = ref<Profile | null>(null)
+const isUserDropdownOpen = ref(false);
+const userMenuRef = ref<HTMLElement | null>(null);
+const userProfile = ref<Profile | null>(null);
 
-const profilePath = '/profile/me'
+const profilePath = "/profile/me";
 const mobileBottomNavItems = [
-  { to: '/home', label: 'Beranda', icon: House },
-  { to: '/projects/my-applications', label: 'Lamaranku', icon: FileText },
-  { to: '/projects/my-projects', label: 'Project', icon: Folder },
-  { to: profilePath, label: 'Profil', icon: UserRound }
-] as const
+  { to: "/home", label: "Beranda", icon: House },
+  { to: "/projects/my-applications", label: "Lamaranku", icon: FileText },
+  { to: "/projects/my-projects", label: "Project", icon: Folder },
+  { to: profilePath, label: "Profil", icon: UserRound },
+] as const;
 const normalizedRoutePath = computed(
-  () => route.path.replace(/\/+$/, '') || '/'
-)
+  () => route.path.replace(/\/+$/, "") || "/",
+);
 const isApplicantSimulationRoute = computed(() =>
-  /^\/projects\/[^/]+\/applicants\/?$/.test(route.path)
-)
-const profileEditPageMeta = computed(() => getProfileEditPageMeta(route.path))
-const isProfileEditRoute = computed(() => profileEditPageMeta.value !== null)
+  /^\/projects\/[^/]+\/applicants\/?$/.test(route.path),
+);
+const profileEditPageMeta = computed(() => getProfileEditPageMeta(route.path));
+const isProfileEditRoute = computed(() => profileEditPageMeta.value !== null);
 const isMobileBottomNavRoute = computed(() =>
-  mobileBottomNavItems.some((item) => item.to === normalizedRoutePath.value)
-)
+  mobileBottomNavItems.some((item) => item.to === normalizedRoutePath.value),
+);
 const mobileNavbar = computed<HomeNavbarConfig | null>(
-  () => (route.meta.homeNavbar as HomeNavbarConfig | undefined) ?? null
-)
+  () => (route.meta.homeNavbar as HomeNavbarConfig | undefined) ?? null,
+);
 const isProfileEditFormRoute = computed(
-  () => isProfileEditRoute.value && !profileEditPageMeta.value?.isMenu
-)
-let desktopMediaQuery: MediaQueryList | null = null
+  () => isProfileEditRoute.value && !profileEditPageMeta.value?.isMenu,
+);
+let desktopMediaQuery: MediaQueryList | null = null;
 
 const displayName = computed(
-  () => userProfile.value?.full_name || user.value?.name || 'User'
-)
+  () => userProfile.value?.full_name || user.value?.name || "User",
+);
 
 const loadNavbarProfile = async () => {
-  const isProfileOverview = /^\/profile\/[^/]+\/?$/.test(route.path)
+  const isProfileOverview = /^\/profile\/[^/]+\/?$/.test(route.path);
   const shouldLoadForCurrentRoute =
-    !mobileNavbar.value || desktopMediaQuery?.matches === true
+    !mobileNavbar.value || desktopMediaQuery?.matches === true;
 
-  if (user.value && !isProfileOverview && !isApplicantSimulationRoute.value && shouldLoadForCurrentRoute) {
-    userProfile.value = await getProfile()
+  if (
+    user.value &&
+    !isProfileOverview &&
+    !isApplicantSimulationRoute.value &&
+    shouldLoadForCurrentRoute
+  ) {
+    userProfile.value = await getProfile();
   }
-}
+};
 
 const handleViewportChange = (event: MediaQueryListEvent) => {
-  if (event.matches) void loadNavbarProfile()
-}
+  if (event.matches) void loadNavbarProfile();
+};
 
 onMounted(() => {
-  desktopMediaQuery = window.matchMedia('(min-width: 1024px)')
-  void loadNavbarProfile()
-  desktopMediaQuery.addEventListener('change', handleViewportChange)
-})
+  desktopMediaQuery = window.matchMedia("(min-width: 1024px)");
+  void loadNavbarProfile();
+  desktopMediaQuery.addEventListener("change", handleViewportChange);
+});
 
 onBeforeUnmount(() => {
-  desktopMediaQuery?.removeEventListener('change', handleViewportChange)
-})
+  desktopMediaQuery?.removeEventListener("change", handleViewportChange);
+});
 
 useClickOutside(userMenuRef, () => {
-  isUserDropdownOpen.value = false
-})
+  isUserDropdownOpen.value = false;
+});
 
 const handleLogout = async () => {
-  await signOut()
-  router.push('/login')
-}
+  await signOut();
+  router.push("/login");
+};
 
 const handleMobileNavbarBack = () => {
-  router.back()
-}
+  router.back();
+};
 </script>
 
 <template>
@@ -90,7 +95,7 @@ const handleMobileNavbarBack = () => {
     <nav
       class="sticky top-0 z-50 border-b border-neutral-200 bg-white/90 backdrop-blur"
     >
-      <div class="mx-auto lg:max-w-4/6 px-4">
+      <div class="mx-auto lg:max-w-5/6 px-4">
         <div
           class="h-16 items-center justify-between gap-6"
           :class="
@@ -231,10 +236,10 @@ const handleMobileNavbarBack = () => {
     <main
       class="mx-auto w-full pt-4"
       :class="[
-        mobileNavbar?.mainWidth === 'wide' ? 'lg:max-w-7xl' : 'lg:max-w-4/6',
+        mobileNavbar?.mainWidth === 'wide' ? 'lg:max-w-7xl' : 'lg:max-w-5/6',
         mobileNavbar?.mainHorizontalPadding === 'none' ? 'px-0' : 'px-4',
         isMobileBottomNavRoute ? 'pb-24 md:pb-4' : '',
-        isProfileEditFormRoute ? 'flex flex-1 flex-col pb-0 lg:pb-4' : ''
+        isProfileEditFormRoute ? 'flex flex-1 flex-col pb-0 lg:pb-4' : '',
       ]"
     >
       <slot />

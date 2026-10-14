@@ -11,14 +11,18 @@ import { getMyProjectSummaryStats } from '~/utils/my-project-summary-stats'
 import { getApiErrorMessage } from '~/utils/error'
 import MyProjectCard from '~/components/project/MyProjectCard.vue'
 import ProjectStatusConfirmModal from '~/components/project/ProjectStatusConfirmModal.vue'
+import { useProjectLifecycle } from '~/composables/useProjectLifecycle'
+import type { ProjectLifecycleAction } from '~/types/project-editor'
 
-const { archiveProject } = useProjects()
 const { currentUserId } = useAuth()
 const toast = useToast()
+const searchQuery = ref('')
+const activeSearch = ref('')
+const projectSearch = computed(() => ({ search: activeSearch.value || undefined }))
 
 // ─── PROGRESSIVE DATA LOADING (useMyProjectList) ───
 const { projects, pending, loadingMore, loadMoreError, error, refresh } =
-  useMyProjectList(currentUserId)
+  useMyProjectList(currentUserId, projectSearch)
 
 const loadError = computed(() =>
   error.value
@@ -117,12 +121,21 @@ const tabs = computed(() => [
 ])
 
 // ─── SEARCH & DROPDOWN FILTERS ───
-const searchQuery = ref('')
 const selectedContext = ref('all')
 const sortBy = ref('newest')
 
+const isFilterActive = computed(() => {
+  return Boolean(
+    searchQuery.value.trim() ||
+    activeSearch.value.trim() ||
+    selectedStatus.value !== 'all' ||
+    selectedContext.value !== 'all'
+  )
+})
+
 const resetFilters = () => {
   searchQuery.value = ''
+  activeSearch.value = ''
   selectedStatus.value = 'all'
   selectedContext.value = 'all'
   sortBy.value = 'newest'
@@ -154,18 +167,6 @@ const filteredProjects = computed(() => {
   // Context Filter
   if (selectedContext.value !== 'all') {
     list = list.filter((p) => p.origin === selectedContext.value)
-  }
-
-  // Search Query
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase()
-    list = list.filter((p) => {
-      const titleMatch = (p.title || '').toLowerCase().includes(q)
-      const descMatch = (p.summary || '').toLowerCase().includes(q)
-      const skillMatch = p.skills?.some((s) => s.name.toLowerCase().includes(q))
-      const toolMatch = p.tools?.some((t) => t.name.toLowerCase().includes(q))
-      return titleMatch || descMatch || skillMatch || toolMatch
-    })
   }
 
   // Sorting
@@ -253,6 +254,10 @@ const displayedProjects = computed(() => {
   return filteredProjects.value.slice(0, mobileDisplayCount.value)
 })
 
+const isEmptyState = computed(() => {
+  return !pending.value && !loadError.value && filteredProjects.value.length === 0
+})
+
 const currentDisplayedCount = computed(() => {
   if (filteredProjects.value.length === 0) return 0
   if (isDesktop.value) {
@@ -264,28 +269,18 @@ const currentDisplayedCount = computed(() => {
   return Math.min(mobileDisplayCount.value, filteredProjects.value.length)
 })
 
-// ─── ARCHIVE CONFIRMATION MODAL ───
-const showArchiveModal = ref(false)
-const projectToArchive = ref<MyProjectSummaryResponse | null>(null)
-
-const handleArchiveRequest = (id: string) => {
-  const target = projects.value.find((p) => p.id === id)
-  if (target) {
-    projectToArchive.value = target
-    showArchiveModal.value = true
-  }
-}
-
-const confirmArchive = async () => {
-  if (!projectToArchive.value) return
-  try {
-    await archiveProject(projectToArchive.value.id)
-    toast.success('Project berhasil diarsipkan.')
-    showArchiveModal.value = false
+const lifecycle = useProjectLifecycle({
+  accountId: currentUserId,
+  onChanged: async (action) => {
+    toast.success(action === 'delete' ? 'Draft proyek berhasil dihapus.' : action === 'draft' ? 'Proyek berhasil dikembalikan ke draft.' : 'Proyek berhasil diarsipkan.')
     await refresh()
-  } catch (err) {
-    toast.error(getApiErrorMessage(err, 'Gagal mengarsipkan project.'))
-  }
+    currentPage.value = Math.min(currentPage.value, totalPages.value)
+  },
+  onConflict: refresh
+})
+const handleLifecycleRequest = (action: ProjectLifecycleAction, id: string) => {
+  const target = projects.value.find((p) => p.id === id)
+  if (target) lifecycle.request(action, target)
 }
 </script>
 
@@ -307,7 +302,7 @@ const confirmArchive = async () => {
           </h1>
         </div>
 
-        <NuxtLink to="/projects/create">
+        <NuxtLink v-if="!isEmptyState" to="/projects/create">
           <AtomicButton variant="primary" size="sm">
             <template #icon-left>
               <Plus class="h-4 w-4" />
@@ -424,7 +419,8 @@ const confirmArchive = async () => {
         <div class="relative flex-1">
           <MoleculeSearchField
             v-model="searchQuery"
-            placeholder="Cari nama proyek atau teknologi..."
+            @search="activeSearch = $event"
+            placeholder="Cari nama atau deskripsi proyek (minimal 3 karakter)..."
           />
         </div>
 
@@ -496,52 +492,43 @@ const confirmArchive = async () => {
             :current-user-id="currentUserId || ''"
             :roles="project.roles"
             :pending-applicants-count="project.pending_application_count ?? undefined"
-            @archive="handleArchiveRequest"
+            @lifecycle="handleLifecycleRequest"
           />
         </div>
 
         <!-- Empty State (OrganismEmptyState) -->
-        <div v-else class="mt-6 rounded-2xl border border-neutral-200 bg-white">
+        <OrganismCard v-else class="mt-6" padding="none">
           <OrganismEmptyState
-            title="Tidak ada proyek yang sesuai"
+            :title="isFilterActive ? 'Tidak ada proyek yang sesuai' : 'Belum ada proyek'"
             :description="
-              searchQuery ||
-              selectedContext !== 'all' ||
-              selectedStatus !== 'all'
+              isFilterActive
                 ? 'Coba sesuaikan kata kunci pencarian atau filter yang dipilih.'
                 : 'Kamu belum memiliki proyek. Mulai inisiasi ide dan kolaborasi pertamamu!'
             "
-            icon="search"
+            :icon="isFilterActive ? 'search' : 'folder'"
           >
             <template #actions>
               <div class="flex flex-wrap items-center justify-center gap-3">
                 <AtomicButton
-                  v-if="
-                    searchQuery ||
-                    selectedContext !== 'all' ||
-                    selectedStatus !== 'all'
-                  "
+                  v-if="isFilterActive"
                   variant="outline"
                   size="sm"
                   @click="resetFilters"
                 >
                   Reset Filter
                 </AtomicButton>
-                <AtomicButton
-                  to="/projects/create"
-                  variant="primary"
-                  size="sm"
-                  class="bg-primary-600! hover:bg-primary-700! text-white!"
-                >
-                  <template #icon-left>
-                    <Plus class="h-4 w-4" />
-                  </template>
-                  Buat Proyek
-                </AtomicButton>
+                <NuxtLink to="/projects/create">
+                  <AtomicButton variant="primary" size="sm">
+                    <template #icon-left>
+                      <Plus class="h-4 w-4" />
+                    </template>
+                    Buat Proyek
+                  </AtomicButton>
+                </NuxtLink>
               </div>
             </template>
           </OrganismEmptyState>
-        </div>
+        </OrganismCard>
 
         <!-- ─── DESKTOP PAGINATION (Align End, MoleculePagination) ─── -->
         <div v-if="isDesktop && totalPages > 1" class="mt-8 flex justify-end">
@@ -568,16 +555,14 @@ const confirmArchive = async () => {
 
     <!-- ─── ARCHIVE MODAL (ProjectStatusConfirmModal) ─── -->
     <ProjectStatusConfirmModal
-      :show="showArchiveModal"
-      action="archived"
-      :project-title="projectToArchive?.title || ''"
-      :has-active-applicants="
-        projectToArchive?.pending_application_count == null
-          ? null
-          : projectToArchive.pending_application_count > 0
-      "
-      @close="showArchiveModal = false"
-      @confirm="confirmArchive"
+      :show="Boolean(lifecycle.target.value)"
+      :action="lifecycle.action.value"
+      :project-title="lifecycle.target.value?.title || ''"
+      :pending="lifecycle.pending.value"
+      :error-message="lifecycle.errorMessage.value"
+      :disable-confirm="lifecycle.conflict.value"
+      @close="lifecycle.close"
+      @confirm="lifecycle.confirm"
     />
   </div>
 </template>

@@ -163,7 +163,8 @@ export const isProjectDefinitionEditableBy = (
   viewer: User | null | undefined
 ): boolean => {
   if (!viewer || !['draft', 'open', 'awaiting_owner'].includes(project.status)) return false
-  if (project.creation_mode === 'personal') return project.owner_id === viewer.id
+  if (project.owner_id) return project.owner_id === viewer.id
+  if (project.creation_mode === 'personal') return false
   return project.creator_id === viewer.id
     && Boolean(project.initiator_organization_id)
     && (viewer.initiableOrganizations ?? []).some(

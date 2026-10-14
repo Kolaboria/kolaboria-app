@@ -1,5 +1,7 @@
 # Rencana Implementasi Claim Project Lead dan Lamaran Kontributor
 
+> **Referensi historis untuk scope applicants/applications:** bagian pengelolaan pelamar, lamaran, persistence, kontrak API, dan integrasi client yang tumpang tindih telah digantikan oleh [rencana terbaru 13 Oktober 2026](../../../../kolaboria-api/docs/superpowers/plans/2026-10-13-applicants-api-and-client.md) dan [requirement r2](../../../../kolaboria-api/docs/applicants-api-requirements.md). Jangan menjalankan kembali pembuatan migration 000010/Apply atau menambahkan generic project capabilities dari rencana ini. Detail claim adalah konteks historis untuk pekerjaan dependency terpisah dan harus diselaraskan dengan keputusan terbaru sebelum dieksekusi.
+
 > **Untuk pelaksana agent:** Setelah rencana dan keputusan produknya disetujui, gunakan `superpowers:executing-plans` atau `superpowers:subagent-driven-development`. Setiap langkah memakai kotak centang agar kemajuan dapat ditinjau. Rencana ini tidak mengizinkan commit, push, atau deployment.
 
 **Tujuan:** Menghapus simulasi detail proyek dan menyediakan alur tersimpan untuk claim Project Lead, pengajuan/peninjauan lamaran, serta pesan dan CTA yang memberi langkah berikutnya tanpa tombol bisnis yang terus-menerus nonaktif.

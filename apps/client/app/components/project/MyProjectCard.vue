@@ -1,193 +1,207 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from "vue";
 import {
   Ellipsis,
   SquarePen,
   Users,
   LayoutDashboard,
-  Archive,
-  ArrowRight
-} from '@lucide/vue'
-import type { MyProjectSummaryResponse } from '~/types/project-editor'
-import { getProjectCategoryLabel } from '~/constants/projectCategory'
+  ArrowRight,
+} from "@lucide/vue";
+import type {
+  MyProjectSummaryResponse,
+  ProjectLifecycleAction,
+} from "~/types/project-editor";
+import ProjectLifecycleActions from "./ProjectLifecycleActions.vue";
+import { getProjectCategoryLabel } from "~/constants/projectCategory";
 
 const props = defineProps<{
-  project: MyProjectSummaryResponse
-  currentUserId: string
-  pendingApplicantsCount?: number
-  roles?: Array<{ name: string; capacity: number }>
-}>()
+  project: MyProjectSummaryResponse;
+  currentUserId: string;
+  pendingApplicantsCount?: number;
+  roles?: Array<{ name: string; capacity: number }>;
+}>();
 
 const emit = defineEmits<{
-  (e: 'archive', id: string): void
-}>()
+  (e: "lifecycle", action: ProjectLifecycleAction, id: string): void;
+}>();
 
-const isMenuOpen = ref(false)
-const menuRef = ref<HTMLElement | null>(null)
+const isMenuOpen = ref(false);
+const menuRef = ref<HTMLElement | null>(null);
 
 const toggleMenu = (event: Event) => {
-  event.stopPropagation()
-  isMenuOpen.value = !isMenuOpen.value
-}
+  event.stopPropagation();
+  isMenuOpen.value = !isMenuOpen.value;
+};
 
-const handleArchiveProject = () => {
-  isMenuOpen.value = false
-  emit('archive', props.project.id)
-}
+const canManage = computed(
+  () =>
+    props.project.owner_id === props.currentUserId ||
+    (!props.project.owner_id && props.project.my_scope === "initiated"),
+);
+const canEdit = computed(
+  () =>
+    canManage.value &&
+    ["draft", "open", "awaiting_owner"].includes(props.project.status),
+);
+
+const handleLifecycleRequest = (action: ProjectLifecycleAction) => {
+  isMenuOpen.value = false;
+  emit("lifecycle", action, props.project.id);
+};
 
 const handleClickOutside = (event: MouseEvent) => {
   if (menuRef.value && !menuRef.value.contains(event.target as Node)) {
-    isMenuOpen.value = false
+    isMenuOpen.value = false;
   }
-}
+};
 
 onMounted(() => {
-  if (typeof window !== 'undefined') {
-    document.addEventListener('click', handleClickOutside)
+  if (typeof window !== "undefined") {
+    document.addEventListener("click", handleClickOutside);
   }
-})
+});
 
 onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    document.removeEventListener('click', handleClickOutside)
+  if (typeof window !== "undefined") {
+    document.removeEventListener("click", handleClickOutside);
   }
-})
+});
 
 // Origin labels matching design reference
 const originLabel = computed(() => {
   switch (props.project.origin) {
-    case 'client':
-      return 'Proyek client'
-    case 'experiment':
-      return 'Eksperimen'
-    case 'community':
-      return 'Komunitas'
-    case 'personal':
-      return 'Proyek pribadi'
+    case "client":
+      return "Proyek client";
+    case "experiment":
+      return "Eksperimen";
+    case "community":
+      return "Komunitas";
+    case "personal":
+      return "Proyek pribadi";
     default:
-      return 'Proyek pribadi'
+      return "Proyek pribadi";
   }
-})
+});
 
 // Origin variant for AtomicTagCategory
-const originVariant = computed<'default' | 'warning' | 'info'>(() => {
+const originVariant = computed<"default" | "warning" | "info">(() => {
   switch (props.project.origin) {
-    case 'client':
-      return 'warning'
-    case 'community':
-      return 'info'
-    case 'experiment':
-    case 'personal':
+    case "client":
+      return "warning";
+    case "community":
+      return "info";
+    case "experiment":
+    case "personal":
     default:
-      return 'default'
+      return "default";
   }
-})
+});
 
 // Status labels matching design reference
 const statusLabel = computed(() => {
   switch (props.project.status) {
-    case 'draft':
-      return 'Draft'
-    case 'open':
-      return 'Menerima Kontributor'
-    case 'in_progress':
-      return 'Berjalan'
-    case 'completed':
-      return 'Selesai'
-    case 'archived':
-      return 'Arsip'
+    case "draft":
+      return "Draft";
+    case "open":
+      return "Menerima Kontributor";
+    case "in_progress":
+      return "Berjalan";
+    case "completed":
+      return "Selesai";
+    case "archived":
+      return "Arsip";
     default:
-      return 'Draft'
+      return "Draft";
   }
-})
+});
 
 // Status variant for AtomicTagCategory
-const statusVariant = computed<'default' | 'success' | 'info' | 'primary'>(
+const statusVariant = computed<"default" | "success" | "info" | "primary">(
   () => {
     switch (props.project.status) {
-      case 'open':
-        return 'success'
-      case 'in_progress':
-        return 'info'
-      case 'completed':
-        return 'primary'
-      case 'draft':
-      case 'archived':
+      case "open":
+        return "success";
+      case "in_progress":
+        return "info";
+      case "completed":
+        return "primary";
+      case "draft":
+      case "archived":
       default:
-        return 'default'
+        return "default";
     }
-  }
-)
+  },
+);
 
 // Category label formatting
 const categoryLabel = computed(() => {
-  if (props.project.project_category === 'product') {
-    return 'Aplikasi Web'
+  if (props.project.project_category === "product") {
+    return "Aplikasi Web";
   }
-  return getProjectCategoryLabel(props.project.project_category)
-})
+  return getProjectCategoryLabel(props.project.project_category);
+});
 
 // Commitment hours text
 const hoursText = computed(() => {
   if (props.project.hours_per_week) {
-    return `${props.project.hours_per_week} jam/minggu`
+    return `${props.project.hours_per_week} jam/minggu`;
   }
-  return 'Fleksibel'
-})
+  return "Fleksibel";
+});
 
 // Target deadline formatting: e.g. "Target 20 Jan 2027"
 const deadlineText = computed(() => {
-  if (!props.project.deadline) return 'Target fleksibel'
-  const date = new Date(props.project.deadline)
-  if (Number.isNaN(date.getTime())) return 'Target fleksibel'
+  if (!props.project.deadline) return "Target fleksibel";
+  const date = new Date(props.project.deadline);
+  if (Number.isNaN(date.getTime())) return "Target fleksibel";
   const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'Mei',
-    'Jun',
-    'Jul',
-    'Agu',
-    'Sep',
-    'Okt',
-    'Nov',
-    'Des'
-  ]
-  return `Target ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`
-})
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "Mei",
+    "Jun",
+    "Jul",
+    "Agu",
+    "Sep",
+    "Okt",
+    "Nov",
+    "Des",
+  ];
+  return `Target ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+});
 
 // Team requirements / positions needed
-const isExperiment = computed(() => props.project.origin === 'experiment')
+const isExperiment = computed(() => props.project.origin === "experiment");
 
 const displayRoles = computed(() => {
   if (props.roles && props.roles.length > 0) {
-    return props.roles
+    return props.roles;
   }
   // Fallback to top skills with capacity
   if (props.project.skills && props.project.skills.length > 0) {
     return props.project.skills.slice(0, 2).map((s, idx) => ({
       name: s.name,
-      capacity: idx === 0 ? Math.max(1, props.project.total_capacity || 1) : 1
-    }))
+      capacity: idx === 0 ? Math.max(1, props.project.total_capacity || 1) : 1,
+    }));
   }
   return [
     {
       name: categoryLabel.value,
-      capacity: props.project.total_capacity || 1
-    }
-  ]
-})
+      capacity: props.project.total_capacity || 1,
+    },
+  ];
+});
 
 // Management URL destination
 const manageUrl = computed(() => {
-  if (props.project.status === 'draft') {
-    return `/projects/${props.project.slug}/edit`
+  if (props.project.status === "draft") {
+    return `/projects/${props.project.slug}/edit`;
   }
-  return `/projects/${props.project.slug}/workspace`
-})
+  return `/projects/${props.project.slug}/workspace`;
+});
 
-const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
+const pendingCount = computed(() => props.pendingApplicantsCount ?? 0);
 </script>
 
 <template>
@@ -246,6 +260,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
                 class="absolute right-0 z-30 mt-2 w-48 origin-top-right rounded-xl border border-neutral-200 bg-white py-1.5 shadow-lg"
               >
                 <NuxtLink
+                  v-if="canEdit"
                   :to="`/projects/${project.slug}/edit`"
                   class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
                   @click="isMenuOpen = false"
@@ -255,7 +270,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
                 </NuxtLink>
 
                 <NuxtLink
-                  v-if="pendingApplicantsCount !== undefined && pendingCount > 0"
+                  v-if="pendingApplicantsCount !== undefined"
                   :to="`/projects/${project.slug}/applicants`"
                   class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
                   @click="isMenuOpen = false"
@@ -273,16 +288,15 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
                   Ruang Kerja
                 </NuxtLink>
 
-                <div class="my-1 border-t border-neutral-100" />
-
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-danger-700"
-                  @click="handleArchiveProject()"
-                >
-                  <Archive class="size-4 text-tertiary" />
-                  Arsipkan Proyek
-                </button>
+                <div
+                  v-if="canManage && ['draft', 'open'].includes(project.status)"
+                  class="my-1 border-t border-neutral-100"
+                />
+                <ProjectLifecycleActions
+                  :status="project.status"
+                  :can-manage="canManage"
+                  @select="handleLifecycleRequest"
+                />
               </div>
             </transition>
           </div>
@@ -297,7 +311,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
 
         <!-- ─── PROJECT SUMMARY ─── -->
         <p class="mt-2 line-clamp-2 font-body-2 text-secondary leading-relaxed">
-          {{ project.summary || 'Belum ada ringkasan proyek.' }}
+          {{ project.summary || "Belum ada ringkasan proyek." }}
         </p>
 
         <!-- ─── METADATA ROW ─── -->
@@ -314,7 +328,7 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
         <!-- ─── TEAM REQUIREMENTS SECTION ─── -->
         <div class="mt-4.5">
           <p class="mb-2 font-label-3 text-secondary">
-            {{ isExperiment ? 'Posisi yang dibutuhkan' : 'Kebutuhan tim' }}
+            {{ isExperiment ? "Posisi yang dibutuhkan" : "Kebutuhan tim" }}
           </p>
           <div class="flex flex-wrap gap-2">
             <AtomicTagCategory
@@ -356,21 +370,6 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0)
           </div>
           <div v-else class="font-body-3 text-tertiary">
             Tidak ada pengajuan baru
-          </div>
-
-          <!-- Right Action Button (AtomicButton) -->
-          <div class="pointer-events-auto">
-            <AtomicButton
-              v-if="pendingCount > 0"
-              :to="`/projects/${project.slug}/applicants`"
-              label="Tinjau Pengajuan"
-              variant="primary"
-              size="sm"
-            >
-              <template #icon-right>
-                <ArrowRight class="size-4" />
-              </template>
-            </AtomicButton>
           </div>
         </div>
       </div>

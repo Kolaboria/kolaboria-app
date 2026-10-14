@@ -43,9 +43,15 @@ const href = computed(() =>
       ><span>{{ experience.metrics.team_size }} anggota</span>
     </div>
     <div class="mt-5">
-      <AtomicButton :to="href" variant="secondary" size="sm"
-        >Lihat Rekam Kontribusi</AtomicButton
+      <NuxtLink
+        :to="href"
+        custom
+        v-slot="{ navigate }"
       >
+        <AtomicButton variant="secondary" size="sm" @click="navigate">
+          Lihat Rekam Kontribusi
+        </AtomicButton>
+      </NuxtLink>
     </div>
   </article>
 </template>

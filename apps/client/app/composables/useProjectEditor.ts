@@ -13,6 +13,7 @@ import {
 } from '../utils/project-editor-api'
 import { getApiErrorMessage, getApiErrorStatus } from '../utils/error'
 import type {
+  ProjectDetailResponse,
   ProjectEditorDraft,
   ProjectCreationMode,
   ProjectEditorErrors,
@@ -219,12 +220,15 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
       ? options.creationContext.initiable_organizations
       : []
   )
-  const selectedOrganization = computed(
-    () =>
-      organizations.value.find(
-        (org) => org.id === draft.value.initiator_organization_id
-      ) ?? null
-  )
+  const selectedOrganization = computed(() => {
+    const ownership = record.value?.ownership
+    if (options.mode === 'edit' && ownership?.owner_id === options.currentUserId &&
+      ownership.initiator_organization_id === draft.value.initiator_organization_id &&
+      ownership.initiator_organization_id) {
+      return ownership.initiator_organization ?? { id: ownership.initiator_organization_id, name: 'Organisasi pemrakarsa' }
+    }
+    return organizations.value.find((org) => org.id === draft.value.initiator_organization_id) ?? null
+  })
   const canInitiateOrganization = computed(() => organizations.value.length > 0)
 
   baseline.value = snapshotDraft(draft.value)
@@ -634,7 +638,7 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
       saveResult.value = {
         kind: 'published',
         message:
-          draft.value.creation_mode === 'organization_initiated'
+          detail.status === 'awaiting_owner'
             ? 'Proyek dipublikasikan dan menunggu Project Lead.'
             : 'Proyek berhasil dipublikasikan.'
       }
@@ -655,6 +659,15 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
   onBeforeUnmount(() => {
     isMounted = false
   })
+
+  const acceptServerDetail = (detail: ProjectDetailResponse) => {
+    record.value = toProjectEditorRecord(detail)
+    draft.value = clone(record.value.draft)
+    baseline.value = snapshotDraft(draft.value)
+    modeDrafts.value.clear()
+    errors.value = {}
+    submitError.value = ''
+  }
 
   return {
     draft,
@@ -682,6 +695,7 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
     validateAll,
     saveDraft,
     saveChanges,
-    publish
+    publish,
+    acceptServerDetail
   }
 }

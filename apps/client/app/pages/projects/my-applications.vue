@@ -54,63 +54,63 @@
 
         <template v-else-if="applications">
           <!-- ─── STATS SUMMARY (4 CARDS) ─── -->
-          <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-8">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
             <!-- 1. Total Pengajuan -->
             <div
-              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3.5 sm:p-5 flex flex-col justify-between shadow-2xs"
             >
-              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+              <p class="font-label-3 text-xs sm:text-xs text-neutral-500 font-medium whitespace-nowrap">
                 Total Pengajuan
               </p>
-              <p class="font-title-1 text-xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
+              <p class="font-title-1 text-2xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
                 {{ userStats.total }}
               </p>
-              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+              <p class="font-body-3 text-neutral-400 mt-1 text-xs">
                 Seluruh riwayat
               </p>
             </div>
 
             <!-- 2. Menunggu -->
             <div
-              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3.5 sm:p-5 flex flex-col justify-between shadow-2xs"
             >
-              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+              <p class="font-label-3 text-xs sm:text-xs text-neutral-500 font-medium whitespace-nowrap">
                 Menunggu
               </p>
-              <p class="font-title-1 text-xl sm:text-3xl font-bold text-accent-600 mt-1 sm:mt-2">
+              <p class="font-title-1 text-2xl sm:text-3xl font-bold text-accent-600 mt-1 sm:mt-2">
                 {{ userStats.pending }}
               </p>
-              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+              <p class="font-body-3 text-neutral-400 mt-1 text-xs">
                 Perlu keputusan
               </p>
             </div>
 
             <!-- 3. Diterima -->
             <div
-              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3.5 sm:p-5 flex flex-col justify-between shadow-2xs"
             >
-              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+              <p class="font-label-3 text-xs sm:text-xs text-neutral-500 font-medium whitespace-nowrap">
                 Diterima
               </p>
-              <p class="font-title-1 text-xl sm:text-3xl font-bold text-success-600 mt-1 sm:mt-2">
+              <p class="font-title-1 text-2xl sm:text-3xl font-bold text-success-600 mt-1 sm:mt-2">
                 {{ userStats.accepted }}
               </p>
-              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+              <p class="font-body-3 text-neutral-400 mt-1 text-xs">
                 Siap berkolaborasi
               </p>
             </div>
 
             <!-- 4. Ditolak -->
             <div
-              class="bg-white rounded-2xl border border-neutral-200/80 p-3 sm:p-5 flex flex-col justify-between shadow-2xs"
+              class="bg-white rounded-2xl border border-neutral-200/80 p-3.5 sm:p-5 flex flex-col justify-between shadow-2xs"
             >
-              <p class="font-label-3 text-[11px] sm:text-xs text-neutral-500 font-medium truncate">
+              <p class="font-label-3 text-xs sm:text-xs text-neutral-500 font-medium whitespace-nowrap">
                 Ditolak
               </p>
-              <p class="font-title-1 text-xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
+              <p class="font-title-1 text-2xl sm:text-3xl font-bold text-neutral-900 mt-1 sm:mt-2">
                 {{ userStats.rejected }}
               </p>
-              <p class="hidden sm:block font-body-3 text-neutral-400 mt-1 text-xs">
+              <p class="font-body-3 text-neutral-400 mt-1 text-xs">
                 Belum dilanjutkan
               </p>
             </div>
@@ -158,32 +158,42 @@
               </aside>
 
               <div class="min-w-0 w-full flex-1">
+                <!-- ─── DESKTOP CONTROLS (≥ lg) ─── -->
                 <div class="mb-4 hidden items-center justify-between gap-4 lg:flex">
-                  <p class="font-body-2 text-secondary">Menampilkan <strong>{{ filteredApplications.length }}</strong> pengajuan</p>
+                  <p class="font-body-2 text-secondary">Menampilkan <strong>{{ totalCount }}</strong> pengajuan</p>
                   <div class="w-48 shrink-0"><MoleculeDropdown v-model="selectedSort" :options="sortOptions" /></div>
                 </div>
 
-                <div class="mb-4 block lg:hidden">
-                  <p class="mb-3 font-body-2 text-secondary">Menampilkan {{ currentDisplayedCount }} dari {{ filteredApplications.length }} pengajuan</p>
-                  <div class="-mx-1 flex items-center gap-2 overflow-x-auto px-1 py-2 scrollbar-none">
-                    <button type="button" class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50" aria-label="Buka semua filter" @click="isMobileFilterOpen = true">
+                <div class="mb-4 hidden lg:block">
+                  <MoleculeSearchField v-model="searchInput" @search="searchQuery = $event" placeholder="Cari proyek atau posisi (minimal 3 karakter)..." aria-label="Cari proyek atau posisi" />
+                </div>
+
+                <!-- ─── MOBILE STICKY CONTROLS (< lg): Full width, sticky top-16 ─── -->
+                <div class="block lg:hidden sticky top-16 z-30 -mx-4 px-4 pt-3 pb-3 bg-neutral-50/95 backdrop-blur-md border-b border-neutral-200/80 mb-5 shadow-xs">
+                  <!-- 1. Search Bar di paling atas -->
+                  <div class="mb-2.5">
+                    <MoleculeSearchField v-model="searchInput" @search="searchQuery = $event" placeholder="Cari proyek atau posisi (minimal 3 karakter)..." aria-label="Cari proyek atau posisi" />
+                  </div>
+
+                  <!-- 2. Chips Filter & Urutkan -->
+                  <div class="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-2 scrollbar-none">
+                    <button type="button" class="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-700 transition-colors hover:bg-neutral-50 active:scale-95 shadow-2xs" aria-label="Buka semua filter" @click="isMobileFilterOpen = true">
                       <Funnel class="h-4.5 w-4.5" aria-hidden="true" />
-                      <span v-if="activeFilterCount" class="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary-600 px-1 font-body-3 text-white ring-2 ring-white">{{ activeFilterCount }}</span>
+                      <span v-if="activeFilterCount" class="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary-600 px-1 font-body-3 text-white ring-2 ring-white text-[11px]">{{ activeFilterCount }}</span>
                     </button>
-                    <button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors" :class="selectedSort !== 'newest' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'" aria-label="Urutkan pengajuan" @click="isMobileSortOpen = true">
+                    <button type="button" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border transition-colors shadow-2xs active:scale-95" :class="selectedSort !== 'newest' ? 'border-primary-500 bg-primary-50 text-primary-700 font-medium' : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50'" aria-label="Urutkan pengajuan" @click="isMobileSortOpen = true">
                       <ArrowDownUp class="h-4.5 w-4.5" aria-hidden="true" />
                     </button>
-                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 transition-colors" :class="selectedStatuses.length ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileStatusFilterOpen = true">
+                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 text-xs sm:text-sm transition-colors shadow-2xs active:scale-95" :class="selectedStatuses.length ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileStatusFilterOpen = true">
                       {{ statusFilterLabel }}<ChevronDown class="h-3.5 w-3.5 text-neutral-500" aria-hidden="true" />
                     </button>
-                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 transition-colors" :class="selectedContexts.length ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileContextFilterOpen = true">
+                    <button type="button" class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 font-label-2 text-xs sm:text-sm transition-colors shadow-2xs active:scale-95" :class="selectedContexts.length ? 'border-primary-500 bg-primary-50 text-primary-700 font-semibold' : 'border-neutral-300 bg-white text-neutral-800'" @click="isMobileContextFilterOpen = true">
                       {{ contextFilterLabel }}<ChevronDown class="h-3.5 w-3.5 text-neutral-500" aria-hidden="true" />
                     </button>
                   </div>
-                </div>
 
-                <div class="mb-4">
-                  <MoleculeSearchField v-model="searchQuery" placeholder="Cari proyek atau posisi..." aria-label="Cari proyek atau posisi" />
+                  <!-- 3. Keterangan Menampilkan xx -->
+                  <p class="pt-1 font-body-2 text-secondary text-xs sm:text-sm">Menampilkan <strong class="text-neutral-900 font-semibold">{{ currentDisplayedCount }}</strong> dari <strong class="text-neutral-900 font-semibold">{{ totalCount }}</strong> pengajuan</p>
                 </div>
 
             <!-- Cards Grid -->
@@ -310,28 +320,40 @@
               </article>
             </div>
 
-            <!-- Mobile Endless Scrolling Sentinel -->
+            <!-- Mobile Endless Scrolling Sentinel & Feedback -->
             <div
-              v-if="!isDesktop && filteredApplications.length > 0"
-              class="w-full flex flex-col items-center"
+              v-if="!isDesktop && totalCount > 0"
+              class="w-full flex flex-col items-center py-6"
             >
+              <div v-if="loadMoreError" class="flex items-center gap-3 text-sm text-danger-700">
+                <span>Pengajuan berikutnya gagal dimuat.</span>
+                <button type="button" class="font-semibold underline" @click="retryLoadMore">Coba lagi</button>
+              </div>
               <div
-                v-if="hasMoreMobile"
+                v-else-if="hasMoreMobile"
                 ref="sentinelRef"
-                class="h-8 w-full pointer-events-none"
-                aria-hidden="true"
-              />
+                class="flex items-center justify-center gap-2 text-sm text-neutral-500 py-3"
+              >
+                <Icon name="lucide:loader-2" class="w-4 h-4 animate-spin text-primary-600" />
+                <span class="font-body-3 text-neutral-500">Memuat pengajuan lainnya...</span>
+              </div>
+              <p
+                v-else-if="totalCount > itemsPerPage"
+                class="font-body-3 text-xs text-neutral-400 py-3 text-center"
+              >
+                Semua pengajuan telah ditampilkan
+              </p>
             </div>
 
             <!-- Desktop Pagination (Hidden on mobile) -->
             <div
-              v-if="filteredApplications.length > 0"
+              v-if="totalCount > 0"
               class="hidden lg:flex justify-end pt-4 border-t border-neutral-100"
             >
               <MoleculePagination
                 v-model="currentPage"
                 :total-pages="totalPages"
-                :total-items="filteredApplications.length"
+                :total-items="totalCount"
                 :per-page="itemsPerPage"
                 align="end"
               />
@@ -339,7 +361,7 @@
 
                 <!-- Empty State -->
                 <div
-                  v-if="filteredApplications.length === 0"
+                  v-if="!pending && !error && totalCount === 0"
                   class="py-16 flex flex-col items-center justify-center text-center px-4 bg-white border border-neutral-200/80 rounded-2xl shadow-2xs"
                 >
                   <OrganismEmptyState
@@ -586,357 +608,225 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ArrowDownUp, ChevronDown, Funnel, SlidersHorizontal } from '@lucide/vue'
+import { useInfiniteScroll } from '~/composables/useInfiniteScroll'
+import { useMyApplications } from '~/composables/useMyApplications'
+import { ApplicationService } from '~/services/application.service'
 import { getApiErrorMessage } from '../../utils/error'
-import type { Application } from '~/types/project'
+import type { ApplicationOrigin, ApplicationStatus } from '~/types/application'
+import { toApplicationDetailCardView, toMyApplicationCardView, type MyApplicationCardView } from '~/utils/application-presentation'
 
 definePageMeta({ layout: 'home', middleware: ['auth', 'onboarding-guard'] })
 useHead({ title: 'Pengajuan Saya — Kolaboria' })
 
-const { getMyApplications, withdrawApplication } = useProjects()
+const { user } = useAuth()
 const toast = useToast()
 const { show: showPopup } = usePopup()
-
-const {
-  data: applications,
-  pending,
-  error,
-  refresh
-} = await useLazyAsyncData<Application[]>('my-applications', () =>
-  getMyApplications()
-)
-
-// ─── FILTER STATES ───
-type StatusFilter = Application['status']
-const selectedStatuses = ref<StatusFilter[]>([])
+const selectedStatuses = ref<ApplicationStatus[]>([])
 const searchQuery = ref('')
+const searchInput = ref('')
 const selectedContexts = ref<string[]>([])
 const selectedSort = ref<'newest' | 'oldest'>('newest')
+const currentPage = ref(1)
+const itemsPerPage = 6
 const isMobileFilterOpen = ref(false)
 const isMobileSortOpen = ref(false)
 const isMobileStatusFilterOpen = ref(false)
 const isMobileContextFilterOpen = ref(false)
+const isDesktop = ref(false)
+const mobileDisplayCount = ref(itemsPerPage)
+const isMobileLoadingMore = ref(false)
+const accountId = computed(() => user.value?.id ?? null)
 
-// ─── STATS SUMMARY COMPUTATION ───
-const userStats = computed(() => {
-  const list = applications.value || []
-  return {
-    total: list.length,
-    pending: list.filter((app) => app.status === 'pending').length,
-    accepted: list.filter((app) => app.status === 'accepted').length,
-    rejected: list.filter((app) => app.status === 'rejected').length,
-    withdrawn: list.filter((app) => app.status === 'withdrawn').length
-  }
+const originByLabel: Record<string, ApplicationOrigin> = {
+  'Proyek pribadi': 'personal',
+  Komunitas: 'community',
+  Eksperimen: 'experiment',
+  'Proyek client': 'client'
+}
+const query = computed(() => ({
+  limit: itemsPerPage,
+  search: searchQuery.value || undefined,
+  statuses: selectedStatuses.value.length ? selectedStatuses.value : undefined,
+  origins: selectedContexts.value.length
+    ? selectedContexts.value.map((label) => originByLabel[label]).filter((origin): origin is ApplicationOrigin => Boolean(origin))
+    : undefined,
+  sort: selectedSort.value
+}))
+const state = useMyApplications(accountId, query, ApplicationService)
+const applications = computed(() => state.items.value.map(toMyApplicationCardView))
+const pending = state.pending
+const error = state.error
+const loadMoreError = state.loadMoreError
+const totalCount = computed(() => state.meta.value?.total ?? 0)
+const totalPages = computed(() => state.meta.value?.total_pages ?? 1)
+const hasMoreMobile = state.hasMore
+const isWithdrawing = state.submitting
+const selectedApp = ref<MyApplicationCardView | null>(null)
+const isDetailModalOpen = ref(false)
+
+const userStats = computed(() => state.summary.value?.stats ?? {
+  total: 0, pending: 0, accepted: 0, rejected: 0, withdrawn: 0
 })
-
-// ─── FILTER OPTIONS / ACTIONS ───
-const statusOptions: { label: string; value: StatusFilter }[] = [
+const statusOptions: { label: string; value: ApplicationStatus }[] = [
   { label: 'Menunggu', value: 'pending' },
   { label: 'Diterima', value: 'accepted' },
   { label: 'Ditolak', value: 'rejected' },
   { label: 'Dibatalkan', value: 'withdrawn' }
 ]
-
 const projectContextLabels: Record<string, string> = {
-  personal: 'Proyek pribadi',
-  community: 'Komunitas',
-  experiment: 'Eksperimen',
-  client: 'Proyek client'
+  personal: 'Proyek pribadi', community: 'Komunitas',
+  experiment: 'Eksperimen', client: 'Proyek client'
 }
-
-const projectContexts = [
-  'Proyek pribadi',
-  'Komunitas',
-  'Eksperimen',
-  'Proyek client'
-]
-
+const projectContexts = Object.keys(originByLabel)
 const sortOptions = [
   { label: 'Terbaru', value: 'newest' },
   { label: 'Terlama', value: 'oldest' }
 ]
-
 const isAllStatusesSelected = computed(() => selectedStatuses.value.length === 0)
 const isAllContextsSelected = computed(() => selectedContexts.value.length === 0)
 const activeFilterCount = computed(() => selectedStatuses.value.length + selectedContexts.value.length)
-const toggleAllStatuses = (checked: boolean) => {
-  if (checked) selectedStatuses.value = []
-}
-const toggleStatus = (status: StatusFilter) => {
+const toggleAllStatuses = (checked: boolean) => { if (checked) selectedStatuses.value = [] }
+const toggleStatus = (status: ApplicationStatus) => {
   selectedStatuses.value = selectedStatuses.value.includes(status)
-    ? selectedStatuses.value.filter(item => item !== status)
+    ? selectedStatuses.value.filter((item) => item !== status)
     : [...selectedStatuses.value, status]
 }
-const toggleAllContexts = (checked: boolean) => {
-  if (checked) selectedContexts.value = []
-}
+const toggleAllContexts = (checked: boolean) => { if (checked) selectedContexts.value = [] }
 const toggleContext = (context: string) => {
   selectedContexts.value = selectedContexts.value.includes(context)
-    ? selectedContexts.value.filter(item => item !== context)
+    ? selectedContexts.value.filter((item) => item !== context)
     : [...selectedContexts.value, context]
 }
 const resetFilters = () => {
   selectedStatuses.value = []
   selectedContexts.value = []
   searchQuery.value = ''
+  searchInput.value = ''
   selectedSort.value = 'newest'
   currentPage.value = 1
   mobileDisplayCount.value = itemsPerPage
 }
 const statusFilterLabel = computed(() => {
-  if (selectedStatuses.value.length === 0) return 'Status'
+  if (!selectedStatuses.value.length) return 'Status'
   if (selectedStatuses.value.length > 1) return `${selectedStatuses.value.length} Status`
-  return statusOptions.find(option => option.value === selectedStatuses.value[0])?.label || 'Status'
+  return statusOptions.find((option) => option.value === selectedStatuses.value[0])?.label || 'Status'
 })
 const contextFilterLabel = computed(() => {
-  if (selectedContexts.value.length === 0) return 'Konteks'
+  if (!selectedContexts.value.length) return 'Konteks'
   if (selectedContexts.value.length > 1) return `${selectedContexts.value.length} Konteks`
   return selectedContexts.value[0]
 })
 
-// ─── HELPERS ───
 const getMonogram = (title?: string) => {
   if (!title) return 'PP'
   const words = title.trim().split(/\s+/)
-  if (words.length >= 2) {
-    return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
-  }
-  return title.slice(0, 2).toUpperCase()
+  return words.length > 1
+    ? ((words[0] ?? '').charAt(0) + (words[1] ?? '').charAt(0)).toUpperCase()
+    : title.slice(0, 2).toUpperCase()
 }
-
-const getAuthorName = (app?: Application | null) => {
-  if (!app) return 'Project Owner'
-  const proj = app.projects as any
-  return (
-    proj?.creator?.full_name ||
-    proj?.creator?.username ||
-    proj?.profiles?.full_name ||
-    proj?.profiles?.username ||
-    'Project Owner'
-  )
+const getAuthorName = (app?: MyApplicationCardView | null) =>
+  app?.profiles?.full_name || app?.profiles?.username || 'Project Owner'
+const getProjectContext = (app?: MyApplicationCardView | null) => {
+  const context = app?.project.origin
+  return context ? projectContextLabels[context] || context : 'Proyek pribadi'
 }
-
-const getProjectContext = (app?: Application | null) => {
-  if (!app) return 'Proyek pribadi'
-  const proj = app.projects as any
-  const context = proj?.context || proj?.origin
-  return projectContextLabels[context] || context || 'Proyek pribadi'
-}
-
-const getRoleName = (app?: Application | null) => {
-  if (!app) return 'Kontributor'
-  return (
-    app.project_role?.custom_title ||
-    app.project_role?.contribution_role?.name ||
-    'Kontributor'
-  )
-}
-
-const getAvailabilityLabel = (availability?: string) => {
-  switch (availability) {
-    case 'part_time':
-      return 'Paruh waktu'
-    case 'full_time':
-      return 'Penuh waktu'
-    case 'weekends_only':
-      return 'Akhir pekan'
-    case 'flexible':
-    default:
-      return 'Fleksibel'
-  }
-}
-
-const getStatusLabel = (status?: string) => {
-  switch (status) {
-    case 'pending':
-      return 'Menunggu'
-    case 'accepted':
-      return 'Diterima'
-    case 'rejected':
-      return 'Ditolak'
-    case 'withdrawn':
-      return 'Dibatalkan'
-    default:
-      return status || '—'
-  }
-}
-
-const getStatusBadgeClass = (status?: string) => {
-  switch (status) {
-    case 'pending':
-      return 'bg-accent-50 text-accent-700 border border-accent-200/60'
-    case 'accepted':
-      return 'bg-success-50 text-success-700 border border-success-200/60'
-    case 'rejected':
-      return 'bg-danger-50 text-danger-700 border border-danger-200/60'
-    case 'withdrawn':
-    default:
-      return 'bg-neutral-100 text-neutral-600 border border-neutral-200/60'
-  }
-}
-
+const getRoleName = (app?: MyApplicationCardView | null) =>
+  app?.project_role?.custom_title || app?.project_role?.contribution_role?.name || 'Kontributor'
+const getAvailabilityLabel = (availability?: string) => ({
+  part_time: 'Paruh waktu', full_time: 'Penuh waktu',
+  weekends_only: 'Akhir pekan', flexible: 'Fleksibel'
+}[availability || ''] || 'Fleksibel')
+const getStatusLabel = (status?: string) => ({
+  pending: 'Menunggu', accepted: 'Diterima', rejected: 'Ditolak', withdrawn: 'Dibatalkan'
+}[status || ''] || status || '—')
+const getStatusBadgeClass = (status?: string) => ({
+  pending: 'bg-accent-50 text-accent-700 border border-accent-200/60',
+  accepted: 'bg-success-50 text-success-700 border border-success-200/60',
+  rejected: 'bg-danger-50 text-danger-700 border border-danger-200/60',
+  withdrawn: 'bg-neutral-100 text-neutral-600 border border-neutral-200/60'
+}[status || ''] || 'bg-neutral-100 text-neutral-600 border border-neutral-200/60')
 const formatDate = (dateString?: string | null) => {
   if (!dateString) return '—'
   const date = new Date(dateString)
-  if (isNaN(date.getTime())) return dateString
-  return date.toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric'
+  return Number.isNaN(date.getTime()) ? dateString : date.toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'short', year: 'numeric'
   })
 }
 
-// ─── FILTERING & SORTING ───
-const filteredApplications = computed(() => {
-  let list = applications.value || []
-
-  // 1. Status Filter (OR within the selected statuses)
-  if (selectedStatuses.value.length > 0) {
-    list = list.filter((app) => selectedStatuses.value.includes(app.status))
-  }
-
-  // 2. Context Filter (OR within the selected contexts)
-  if (selectedContexts.value.length > 0) {
-    list = list.filter((app) => {
-      const ctx = getProjectContext(app)
-      return selectedContexts.value.some(context => ctx.toLowerCase() === context.toLowerCase())
-    })
-  }
-
-  // 3. Search Query
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.trim().toLowerCase()
-    list = list.filter((app) => {
-      const matchTitle = (app.projects?.title || '').toLowerCase().includes(q)
-      const matchRole = getRoleName(app).toLowerCase().includes(q)
-      const matchAuthor = getAuthorName(app).toLowerCase().includes(q)
-      const matchDesc = (app.projects?.summary || '').toLowerCase().includes(q)
-      const matchContrib = (app.expected_contribution || '').toLowerCase().includes(q)
-      const matchMotiv = (app.motivation || '').toLowerCase().includes(q)
-      return matchTitle || matchRole || matchAuthor || matchDesc || matchContrib || matchMotiv
-    })
-  }
-
-  // 4. Sorting
-  return list.slice().sort((a, b) => {
-    const timeA = new Date(a.applied_at || 0).getTime()
-    const timeB = new Date(b.applied_at || 0).getTime()
-    return selectedSort.value === 'newest' ? timeB - timeA : timeA - timeB
-  })
-})
-
-// ─── RESPONSIVE VIEWPORT & PAGINATION / INFINITE SCROLL ───
-const isDesktop = ref(false)
 let mediaQuery: MediaQueryList | null = null
-
-const handleMediaChange = (e: MediaQueryListEvent | MediaQueryList) => {
-  isDesktop.value = e.matches
-}
-
+const handleMediaChange = (event: MediaQueryListEvent | MediaQueryList) => { isDesktop.value = event.matches }
 onMounted(() => {
-  if (typeof window !== 'undefined') {
-    mediaQuery = window.matchMedia('(min-width: 1024px)')
-    isDesktop.value = mediaQuery.matches
-    mediaQuery.addEventListener('change', handleMediaChange)
-  }
+  if (typeof window === 'undefined') return
+  mediaQuery = window.matchMedia('(min-width: 1024px)')
+  isDesktop.value = mediaQuery.matches
+  mediaQuery.addEventListener('change', handleBreakpointChange)
 })
-
-onUnmounted(() => {
-  if (mediaQuery) {
-    mediaQuery.removeEventListener('change', handleMediaChange)
-  }
-})
-
-const currentPage = ref(1)
-const itemsPerPage = 6
-
-const totalPages = computed(() => {
-  return Math.ceil(filteredApplications.value.length / itemsPerPage) || 1
-})
-
-const mobileDisplayCount = ref(itemsPerPage)
-
-const hasMoreMobile = computed(() => {
-  return mobileDisplayCount.value < filteredApplications.value.length
-})
+onUnmounted(() => mediaQuery?.removeEventListener('change', handleBreakpointChange))
+const handleBreakpointChange = (event: MediaQueryListEvent | MediaQueryList) => {
+  handleMediaChange(event)
+  currentPage.value = 1
+  mobileDisplayCount.value = itemsPerPage
+  void state.refresh()
+}
 
 const loadMoreMobile = async () => {
+  if (isMobileLoadingMore.value || !hasMoreMobile.value) return
+  isMobileLoadingMore.value = true
+  await state.loadMore()
   mobileDisplayCount.value += itemsPerPage
+  isMobileLoadingMore.value = false
 }
-
 const { sentinelRef } = useInfiniteScroll({
-  onLoadMore: loadMoreMobile,
-  hasMore: hasMoreMobile,
-  disabled: isDesktop,
-  distance: '200px'
+  onLoadMore: loadMoreMobile, hasMore: hasMoreMobile,
+  disabled: isDesktop, distance: '200px'
 })
-
-// Reset pagination when any filter changes
+const retryLoadMore = () => state.loadMore()
+watch(currentPage, (page, previous) => {
+  if (page !== previous) void state.loadPage(page)
+  if (isDesktop.value && typeof window !== 'undefined') window.scrollTo({ top: 180, behavior: 'smooth' })
+})
 watch([selectedStatuses, selectedContexts, searchQuery, selectedSort], () => {
   currentPage.value = 1
   mobileDisplayCount.value = itemsPerPage
 }, { deep: true })
+const displayedApplications = applications
+const currentDisplayedCount = computed(() => Math.min(
+  isDesktop.value ? currentPage.value * itemsPerPage : mobileDisplayCount.value,
+  totalCount.value
+))
 
-const displayedApplications = computed(() => {
-  if (isDesktop.value) {
-    const start = (currentPage.value - 1) * itemsPerPage
-    return filteredApplications.value.slice(start, start + itemsPerPage)
-  }
-  return filteredApplications.value.slice(0, mobileDisplayCount.value)
-})
-
-const currentDisplayedCount = computed(() => {
-  if (filteredApplications.value.length === 0) return 0
-  if (isDesktop.value) {
-    return Math.min(
-      currentPage.value * itemsPerPage,
-      filteredApplications.value.length
-    )
-  }
-  return Math.min(mobileDisplayCount.value, filteredApplications.value.length)
-})
-
-// ─── DETAIL MODAL STATE ───
-const selectedApp = ref<Application | null>(null)
-const isDetailModalOpen = ref(false)
-
-const openDetail = (app: Application) => {
+const openDetail = async (app: MyApplicationCardView) => {
   selectedApp.value = app
   isDetailModalOpen.value = true
+  await state.openDetail(app.id)
+  if (state.detail.value?.id === app.id) selectedApp.value = toApplicationDetailCardView(state.detail.value)
 }
-
 const closeDetail = () => {
   isDetailModalOpen.value = false
   selectedApp.value = null
+  state.closeDetail()
 }
-
 const handleWithdrawFromModal = () => {
   if (!selectedApp.value) return
   const id = selectedApp.value.id
   closeDetail()
   handleWithdraw(id)
 }
-
-// ─── WITHDRAW ACTION ───
-const isWithdrawing = ref(false)
-
 const handleWithdraw = (applicationId: string) => {
   showPopup({
     title: 'Batalkan Pengajuan?',
-    description:
-      'Apakah kamu yakin ingin membatalkan pengajuan ini? Tindakan ini tidak dapat dibatalkan.',
+    description: 'Apakah kamu yakin ingin membatalkan pengajuan ini? Tindakan ini tidak dapat dibatalkan.',
     type: 'danger',
     positiveLabel: 'Ya, Batalkan',
     negativeLabel: 'Kembali',
     onPositive: async () => {
-      isWithdrawing.value = true
       try {
-        await withdrawApplication(applicationId)
+        await state.withdraw(applicationId)
+        currentPage.value = 1
+        closeDetail()
         toast.success('Pengajuan berhasil dibatalkan.')
-        await refresh()
-      } catch (err: unknown) {
-        toast.error(getApiErrorMessage(err, 'Gagal membatalkan pengajuan.'))
-      } finally {
-        isWithdrawing.value = false
+      } catch (failure: unknown) {
+        toast.error(getApiErrorMessage(failure, 'Gagal membatalkan pengajuan.'))
       }
     }
   })

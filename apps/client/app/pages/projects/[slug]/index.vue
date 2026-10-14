@@ -22,9 +22,15 @@
           Proyek yang kamu cari tidak ada atau terjadi kesalahan saat memuat
           data.
         </p>
-        <AtomicButton variant="primary" to="/projects">
-          Kembali ke Proyek
-        </AtomicButton>
+        <NuxtLink
+          to="/projects"
+          custom
+          v-slot="{ navigate }"
+        >
+          <AtomicButton variant="primary" @click="navigate">
+            Kembali ke Proyek
+          </AtomicButton>
+        </NuxtLink>
       </div>
 
       <!-- Project Detail -->
@@ -67,7 +73,7 @@
           <!-- Two-column Layout -->
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             <!-- LEFT COLUMN: Main Project Details -->
-            <div class="lg:col-span-8 flex flex-col gap-6" ref="heroSection">
+            <div class="lg:col-span-8 flex flex-col gap-6">
               <!-- Card 1: Header / Overview Card -->
               <article
                 class="rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8 space-y-4 shadow-xs"
@@ -366,62 +372,92 @@
 
                 <!-- CTA Actions -->
                 <div class="space-y-2.5 pt-2">
-                  <NuxtLink
-                    v-if="canApply && !user"
-                    to="/login"
-                    class="inline-flex w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white hover:bg-primary-700"
-                  >
-                    Masuk untuk melamar
-                  </NuxtLink>
-
-                  <NuxtLink
-                    v-else-if="canApply && !isVerified"
-                    to="/verify-email-notice"
-                    class="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100"
-                  >
-                    Verifikasi email untuk melamar
-                  </NuxtLink>
-
-                  <template v-else-if="canApply">
-                    <AtomicButton
-                      variant="primary"
-                      block
-                      class="!py-3 !rounded-xl font-semibold !text-sm"
-                      :disabled="!isVerified"
-                      @click="isVerified ? (showApplyModal = true) : null"
+                  <div class="hidden space-y-2.5 lg:block">
+                    <NuxtLink
+                      v-if="stickyActionState.canApply && !stickyActionState.hasUser"
+                      to="/login"
+                      custom
+                      v-slot="{ navigate }"
                     >
-                      Ajukan Kontribusi
-                    </AtomicButton>
-                  </template>
+                      <AtomicButton
+                        variant="primary"
+                        block
+                        class="!py-3 !rounded-xl font-semibold !text-sm"
+                        @click="navigate"
+                      >
+                        Masuk untuk melamar
+                      </AtomicButton>
+                    </NuxtLink>
 
-                  <template v-else-if="!isProjectOwner">
-                    <MoleculeTicker
-                      :variant="applicationUnavailableVariant"
-                      :title="applicationUnavailableTitle"
-                      :message="applicationUnavailableMessage"
-                      :closable="false"
-                    />
-                  </template>
+                    <NuxtLink
+                      v-else-if="stickyActionState.canApply && !stickyActionState.isVerified"
+                      to="/verify-email-notice"
+                      class="inline-flex w-full items-center justify-center rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                    >
+                      Verifikasi email untuk melamar
+                    </NuxtLink>
 
-                  <AtomicButton
-                    v-if="canEditDefinition"
-                    :to="`/projects/${project.slug}/edit`"
-                    variant="outline"
-                    block
-                    class="!py-3 !rounded-xl font-semibold !text-sm"
-                  >
-                    Edit Proyek
-                  </AtomicButton>
+                    <template v-else-if="stickyActionState.canApply">
+                      <AtomicButton
+                        variant="primary"
+                        block
+                        class="!py-3 !rounded-xl font-semibold !text-sm"
+                        :disabled="!stickyActionState.isVerified"
+                        @click="handleStickyApply"
+                      >
+                        Ajukan Kontribusi
+                      </AtomicButton>
+                    </template>
+
+                    <NuxtLink
+                      v-if="stickyActionState.canEditDefinition"
+                      :to="`/projects/${project.slug}/edit`"
+                      custom
+                      v-slot="{ navigate }"
+                    >
+                      <AtomicButton
+                        variant="outline"
+                        block
+                        class="!py-3 !rounded-xl font-semibold !text-sm"
+                        @click="handleStickyPreviewNavigation($event, navigate)"
+                      >
+                        Edit Proyek
+                      </AtomicButton>
+                    </NuxtLink>
+                    <NuxtLink
+                      v-if="stickyActionState.isProjectOwner"
+                      :to="`/projects/${project.slug}/applicants`"
+                      custom
+                      v-slot="{ navigate }"
+                    >
+                      <AtomicButton
+                        variant="outline"
+                        block
+                        class="!py-3 !rounded-xl font-semibold !text-sm"
+                        @click="handleStickyPreviewNavigation($event, navigate)"
+                      >
+                        Kelola Pelamar
+                      </AtomicButton>
+                    </NuxtLink>
+                  </div>
+
+                  <MoleculeTicker
+                    v-if="!stickyActionState.canApply && !stickyActionState.isProjectOwner"
+                    :variant="applicationUnavailableVariant"
+                    :title="applicationUnavailableTitle"
+                    :message="applicationUnavailableMessage"
+                    :closable="false"
+                  />
 
                   <p
-                    v-if="canApply"
+                    v-if="stickyActionState.canApply"
                     class="text-xs text-neutral-500 text-center leading-relaxed"
                   >
                     Pastikan profil dan ketersediaanmu sudah sesuai sebelum
                     mengajukan kontribusi.
                   </p>
                   <MoleculeTicker
-                    v-if="user && canApply && !isVerified"
+                    v-if="stickyActionState.hasUser && stickyActionState.canApply && !stickyActionState.isVerified"
                     variant="warning"
                     title="Verifikasi email diperlukan"
                     message="Verifikasi email Anda terlebih dahulu untuk mengajukan kontribusi."
@@ -466,54 +502,84 @@
 
         <!-- Mobile Sticky Bottom CTA Bar -->
         <div
-          class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 lg:hidden"
+          v-if="hasStickyActions"
+          class="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white px-4 pt-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 lg:hidden"
           :class="
             showStickyBar
               ? 'translate-y-0 opacity-100'
               : 'translate-y-full opacity-0 pointer-events-none'
           "
         >
-          <div
-            class="max-w-7xl mx-auto flex items-center justify-between gap-4"
-          >
-            <div class="min-w-0 flex-1">
-              <p class="font-label-2 text-neutral-900 truncate">
-                {{ project.title }}
-              </p>
-              <p class="text-xs text-neutral-500 mt-0.5">
-                <span
-                  class="inline-block w-1.5 h-1.5 rounded-full mr-1"
-                  :class="openSlots > 0 ? 'bg-emerald-500' : 'bg-neutral-400'"
-                ></span>
-                {{
-                  project.status === 'open' && openSlots > 0
-                    ? `${openSlots} slot tersedia`
-                    : statusLabel
-                }}
-              </p>
-            </div>
-            <div class="shrink-0">
-              <template v-if="canEditDefinition">
-                <AtomicButton
-                  :to="`/projects/${project.slug}/edit`"
-                  variant="primary"
-                  size="sm"
-                  class="!rounded-xl font-semibold"
-                >
-                  Edit Proyek
-                </AtomicButton>
-              </template>
-              <template v-else-if="canApply">
-                <button
-                  type="button"
-                  class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#4f46e5] hover:bg-[#4338ca] transition-colors disabled:bg-neutral-300 cursor-pointer"
-                  :disabled="!isVerified"
-                  @click="isVerified ? (showApplyModal = true) : null"
-                >
-                  Ajukan Kontribusi
-                </button>
-              </template>
-            </div>
+          <div class="mx-auto flex max-w-7xl flex-col gap-2">
+            <NuxtLink
+              v-if="stickyActionState.canApply && !stickyActionState.hasUser"
+              to="/login"
+              custom
+              v-slot="{ navigate }"
+            >
+              <AtomicButton
+                variant="primary"
+                block
+                class="!rounded-xl font-semibold"
+                @click="handleStickyPreviewNavigation($event, navigate)"
+              >
+                Masuk untuk melamar
+              </AtomicButton>
+            </NuxtLink>
+            <NuxtLink
+              v-else-if="stickyActionState.canApply && !stickyActionState.isVerified"
+              to="/verify-email-notice"
+              custom
+              v-slot="{ navigate }"
+            >
+              <AtomicButton
+                variant="outline"
+                block
+                class="!rounded-xl font-semibold"
+                @click="handleStickyPreviewNavigation($event, navigate)"
+              >
+                Verifikasi email untuk melamar
+              </AtomicButton>
+            </NuxtLink>
+            <AtomicButton
+              v-else-if="stickyActionState.canApply"
+              variant="primary"
+              block
+              class="!rounded-xl font-semibold"
+              @click="handleStickyApply"
+            >
+              Ajukan Kontribusi
+            </AtomicButton>
+            <NuxtLink
+              v-if="stickyActionState.canEditDefinition"
+              :to="`/projects/${project.slug}/edit`"
+              custom
+              v-slot="{ navigate }"
+            >
+              <AtomicButton
+                variant="outline"
+                block
+                class="!rounded-xl font-semibold"
+                @click="handleStickyPreviewNavigation($event, navigate)"
+              >
+                Edit Proyek
+              </AtomicButton>
+            </NuxtLink>
+            <NuxtLink
+              v-if="stickyActionState.isProjectOwner"
+              :to="`/projects/${project.slug}/applicants`"
+              custom
+              v-slot="{ navigate }"
+            >
+              <AtomicButton
+                variant="outline"
+                block
+                class="!rounded-xl font-semibold"
+                @click="handleStickyPreviewNavigation($event, navigate)"
+              >
+                Kelola Pelamar
+              </AtomicButton>
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -543,7 +609,11 @@ import {
   toProjectDetailView
 } from '~/utils/project-presentation'
 import { getProjectCategoryLabel } from '~/constants/projectCategory'
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import {
+  getStickyActionPreviewCase,
+  resolveStickyActionState
+} from '~/utils/sticky-action-preview'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 definePageMeta({
@@ -555,6 +625,9 @@ definePageMeta({
 })
 
 const route = useRoute()
+const stickyActionPreviewCase = computed(() =>
+  getStickyActionPreviewCase(route.query.stickyPreview)
+)
 
 const { user, isVerified } = useAuth()
 
@@ -626,6 +699,37 @@ const availableRoles = computed(
     ) ?? []
 )
 
+const now = ref(Date.now())
+let retryCountdownTimer: ReturnType<typeof setTimeout> | undefined
+const retryAfter = computed(() => project.value?.viewer_application?.retry_after ?? null)
+const isReapplyCooldownActive = computed(() => {
+  if (!retryAfter.value) return false
+  const retryAt = Date.parse(retryAfter.value)
+  return Number.isFinite(retryAt) && retryAt > now.value
+})
+
+watch(retryAfter, (value) => {
+  if (retryCountdownTimer) clearTimeout(retryCountdownTimer)
+  now.value = Date.now()
+  if (typeof window === 'undefined') return
+  if (!value) return
+  const retryAt = Date.parse(value)
+  if (!Number.isFinite(retryAt) || retryAt <= now.value) return
+  retryCountdownTimer = setTimeout(() => {
+    now.value = Date.now()
+  }, retryAt - now.value + 25)
+}, { immediate: true })
+
+const retryAfterLabel = computed(() => {
+  if (!retryAfter.value) return ''
+  const retryAt = Date.parse(retryAfter.value)
+  if (!Number.isFinite(retryAt)) return ''
+  return new Intl.DateTimeFormat('id-ID', {
+    dateStyle: 'long',
+    timeStyle: 'short'
+  }).format(retryAt)
+})
+
 const roleAvailabilityClass = (role: ProjectRole) =>
   role.remaining_capacity > 0
     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -657,6 +761,7 @@ const canApply = computed(() => {
     availableRoles.value.length > 0 &&
     !isProjectOwner.value &&
     !isInitiatorOrganizationAdmin.value &&
+    !isReapplyCooldownActive.value &&
     !hasActiveApplication
   )
 })
@@ -860,14 +965,25 @@ const applicationStatusCopy = computed(() =>
   getProjectApplicationStatusCopy(project.value?.viewer_application?.status)
 )
 const applicationUnavailableTitle = computed(() =>
-  getProjectApplicationUnavailableTitle({
-    projectStatus: project.value?.status,
-    applicationStatus: project.value?.viewer_application?.status,
-    isProjectOwner: isProjectOwner.value,
-    isInitiatorOrganizationAdmin: isInitiatorOrganizationAdmin.value
-  })
+  isReapplyCooldownActive.value
+    ? 'Belum bisa mengajukan kembali'
+    : retryAfter.value && project.value?.status !== 'open'
+      ? 'Masa tunggu selesai'
+      : getProjectApplicationUnavailableTitle({
+          projectStatus: project.value?.status,
+          applicationStatus: project.value?.viewer_application?.status,
+          isProjectOwner: isProjectOwner.value,
+          isInitiatorOrganizationAdmin: isInitiatorOrganizationAdmin.value
+      })
 )
 const applicationUnavailableMessage = computed(() => {
+  if (isReapplyCooldownActive.value) {
+    const estimated = project.value?.viewer_application?.retry_after_estimated
+    return `Pengajuanmu ditolak. Kamu bisa mengajukan kembali setelah ${retryAfterLabel.value} (72 jam setelah penolakan), selama proyek masih berstatus terbuka.${estimated ? ' Waktu ini merupakan perkiraan berdasarkan pembaruan data pengajuan lama.' : ''}`
+  }
+  if (retryAfter.value && project.value?.status !== 'open') {
+    return 'Masa tunggu 72 jam telah selesai. Kamu hanya bisa mengajukan kembali jika proyek masih terbuka.'
+  }
   if (applicationStatusCopy.value) return applicationStatusCopy.value.message
   if (isProjectOwner.value) return 'Kamu adalah Project Lead proyek ini.'
   if (isInitiatorOrganizationAdmin.value)
@@ -884,7 +1000,20 @@ const applicationUnavailableMessage = computed(() => {
     : ''
 })
 const applicationUnavailableVariant = computed(() => {
-  switch (project.value?.status) {
+  const currentProject = project.value
+  const applicationStatus = currentProject?.viewer_application?.status
+
+  if (applicationStatus === 'accepted') {
+    return 'success' as const
+  }
+  if (applicationStatus === 'pending') {
+    return 'info' as const
+  }
+  if (isReapplyCooldownActive.value) {
+    return 'warning' as const
+  }
+
+  switch (currentProject?.status) {
     case 'awaiting_owner':
     case 'draft':
       return 'warning' as const
@@ -893,7 +1022,15 @@ const applicationUnavailableVariant = computed(() => {
     case 'in_progress':
       return 'info' as const
     default:
-      return 'warning' as const
+      if (
+        currentProject?.status === 'open' &&
+        (currentProject.visibility !== 'public' ||
+          !currentProject.owner_id ||
+          availableRoles.value.length === 0)
+      ) {
+        return 'warning' as const
+      }
+      return 'info' as const
   }
 })
 
@@ -901,11 +1038,40 @@ const showApplyModal = ref(false)
 const handleApplied = () => refreshProject()
 
 // Mobile scroll listener for sticky bottom bar
-const heroSection = ref<HTMLElement | null>(null)
 const showStickyBar = ref(false)
-let scrollHandler: () => void
+let scrollHandler: (() => void) | undefined
+let resizeHandler: (() => void) | undefined
 
 const isMobile = ref(false)
+const stickyActionState = computed(() =>
+  resolveStickyActionState(stickyActionPreviewCase.value, {
+    canApply: canApply.value,
+    isProjectOwner: isProjectOwner.value,
+    canEditDefinition: canEditDefinition.value,
+    hasUser: Boolean(user.value),
+    isVerified: isVerified.value
+  })
+)
+const hasStickyActions = computed(
+  () =>
+    stickyActionState.value.canApply ||
+    stickyActionState.value.canEditDefinition ||
+    stickyActionState.value.isProjectOwner
+)
+const handleStickyPreviewNavigation = (
+  event: MouseEvent,
+  navigate: (event?: MouseEvent) => unknown
+) => {
+  if (stickyActionPreviewCase.value) {
+    event.preventDefault()
+    return
+  }
+  navigate(event)
+}
+const handleStickyApply = () => {
+  if (stickyActionPreviewCase.value) return
+  showApplyModal.value = true
+}
 const updateIsMobile = () => {
   if (typeof window !== 'undefined') {
     isMobile.value = window.innerWidth < 1024
@@ -915,38 +1081,26 @@ const updateIsMobile = () => {
 const setupScrollListener = () => {
   updateIsMobile()
   scrollHandler = () => {
-    const hero = heroSection.value
-    showStickyBar.value = Boolean(
-      isMobile.value && hero && hero.getBoundingClientRect().bottom <= 40
-    )
+    showStickyBar.value = isMobile.value && window.scrollY > 80
   }
   window.addEventListener('scroll', scrollHandler, { passive: true })
-  window.addEventListener(
-    'resize',
-    () => {
-      updateIsMobile()
-      scrollHandler()
-    },
-    { passive: true }
-  )
+  resizeHandler = () => {
+    updateIsMobile()
+    scrollHandler?.()
+  }
+  window.addEventListener('resize', resizeHandler, { passive: true })
 }
-
-watch(
-  heroSection,
-  () => {
-    if (scrollHandler) scrollHandler()
-  },
-  { flush: 'post' }
-)
 
 onMounted(() => {
   setupScrollListener()
-  if (scrollHandler) scrollHandler()
+  scrollHandler?.()
 })
 
 onBeforeUnmount(() => {
-  if (typeof window !== 'undefined' && scrollHandler) {
-    window.removeEventListener('scroll', scrollHandler)
+  if (retryCountdownTimer) clearTimeout(retryCountdownTimer)
+  if (typeof window !== 'undefined') {
+    if (scrollHandler) window.removeEventListener('scroll', scrollHandler)
+    if (resizeHandler) window.removeEventListener('resize', resizeHandler)
   }
 })
 </script>

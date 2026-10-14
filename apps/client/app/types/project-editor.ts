@@ -1,4 +1,4 @@
-import type { ProjectCategory, ProjectStatus, ProjectVisibility } from '~/types/project'
+import type { ProjectCategory, ProjectStatus, ProjectVisibility, ViewerApplicationResponse } from '~/types/project'
 import type { Skill, Tool } from '~/types/skill'
 import type { SystemRole } from '~/types/auth'
 
@@ -32,11 +32,7 @@ export interface ProjectOrganizationResponse {
   name: string
   slug: string
 }
-export interface ViewerApplicationResponse {
-  id: string
-  status: 'pending' | 'accepted'
-  applied_at: string
-}
+export type { ViewerApplicationResponse }
 export type ProjectEditorStep = 0 | 1 | 2 | 3 | 4
 export type ProjectOrigin = 'personal' | 'community' | 'experiment' | 'client'
 export type ProjectEditorAvailability = 'flexible' | 'part_time' | 'weekends_only' | 'full_time'
@@ -160,6 +156,22 @@ export interface PublishProjectRequest {
   version: number
 }
 
+export type ProjectLifecycleAction = 'draft' | 'archived' | 'delete'
+export interface ProjectLifecycleTarget {
+  id: string
+  title: string
+  status: ProjectStatus | 'awaiting_owner'
+  version: number
+}
+export interface ChangeProjectStatusRequest {
+  version: number
+  status: 'draft' | 'archived'
+}
+export interface ProjectLifecycleGateway {
+  changeStatus(id: string, request: ChangeProjectStatusRequest): Promise<ProjectDetailResponse>
+  deleteDraft(id: string, request: { version: number }): Promise<void>
+}
+
 export interface ProjectEditorDetailRole {
   id: string
   contribution_role_id: string | null
@@ -198,6 +210,7 @@ export interface ProjectSummaryResponse {
 }
 
 export interface MyProjectSummaryResponse extends ProjectSummaryResponse {
+  version: number
   my_scope: 'owned' | 'initiated'
   roles: Array<{ name: string; capacity: number }>
   pending_application_count?: number | null

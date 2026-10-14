@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { ref } from 'vue'
+import { effectScope, ref } from 'vue'
 import './helpers/frontend-runtime.mjs'
 
 const { parseCurrentUserContext } = await import('../app/utils/auth-user-context.ts')
@@ -16,6 +16,8 @@ test('strict onboarding lookup reports transport failures without overwriting kn
   const onboarded = ref(true)
   globalThis.useState = (key, init) => key === 'is_onboarded' ? onboarded : ref(init())
   globalThis.useCookie = () => ref(null)
+  const app = { _scope: effectScope(true), runWithContext: fn => fn() }
+  globalThis.useNuxtApp = () => app
   globalThis.useRuntimeConfig = () => ({ public: { apiBaseUrl: 'http://unused.test' } })
   globalThis.$fetch = async () => { throw new Error('transport failure') }
   try {
@@ -26,7 +28,7 @@ test('strict onboarding lookup reports transport failures without overwriting kn
     assert.equal(await useProfile().checkOnboardingStatus(true, { throwOnError: true }), false)
     assert.equal(onboarded.value, false)
   } finally {
-    for (const key of ['useState', 'useCookie', 'useRuntimeConfig', '$fetch']) delete globalThis[key]
+    for (const key of ['useState', 'useCookie', 'useNuxtApp', 'useRuntimeConfig', '$fetch']) delete globalThis[key]
   }
 })
 
@@ -54,6 +56,8 @@ test('context refresh replaces revoked rights and transport errors clear rights 
   const cookies = new Map([['auth_token', ref(token)], ['auth_refresh_token', ref('refresh')]])
   const states = new Map()
   globalThis.useCookie = name => cookies.get(name)
+  const app = { _scope: effectScope(true), runWithContext: fn => fn() }
+  globalThis.useNuxtApp = () => app
   globalThis.useState = (key, init = () => null) => { if (!states.has(key)) states.set(key, ref(init())); return states.get(key) }
   const original = AuthService.getMe
   try {
@@ -72,6 +76,7 @@ test('context refresh replaces revoked rights and transport errors clear rights 
   } finally {
     AuthService.getMe = original
     delete globalThis.useCookie
+    delete globalThis.useNuxtApp
     delete globalThis.useState
   }
 })

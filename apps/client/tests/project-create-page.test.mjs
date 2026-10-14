@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { nextTick, ref } from 'vue'
+import { effectScope, nextTick, ref } from 'vue'
 import { mountSetup } from './helpers/frontend-runtime.mjs'
 
 test('create loader retries failed onboarding and reflects refreshed grants without discarding editor context', async () => {
@@ -16,6 +16,8 @@ test('create loader retries failed onboarding and reflects refreshed grants with
   globalThis.useHead = () => {}
   globalThis.useRuntimeConfig = () => ({ public: { apiBaseUrl: 'http://localhost' } })
   globalThis.useCookie = () => ({ value: null })
+  const app = { _scope: effectScope(true), runWithContext: fn => fn() }
+  globalThis.useNuxtApp = () => app
   const { default: Page } = await import('../app/pages/projects/create.vue')
   const mounted = mountSetup(() => Page.setup({}, { expose() {} }))
   const vm = mounted.bindings
@@ -40,6 +42,6 @@ test('create loader retries failed onboarding and reflects refreshed grants with
     assert.equal(vm.contextAvailable.value, false)
   } finally {
     mounted.unmount()
-    for (const key of ['useAuth', 'useProfile', 'definePageMeta', 'useHead', 'useRuntimeConfig', 'useCookie']) delete globalThis[key]
+    for (const key of ['useAuth', 'useProfile', 'definePageMeta', 'useHead', 'useRuntimeConfig', 'useCookie', 'useNuxtApp']) delete globalThis[key]
   }
 })

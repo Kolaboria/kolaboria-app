@@ -68,6 +68,7 @@ export interface RefreshAuthResponsePayload {
     email: string
     email_verified_at: string | null
     is_active: boolean
+    system_role: SystemRole
     created_at: string
   }
 }

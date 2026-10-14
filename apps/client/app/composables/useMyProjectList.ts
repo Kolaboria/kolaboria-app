@@ -1,20 +1,29 @@
 import { onMounted, onScopeDispose, ref, watch, type Ref } from 'vue'
 import { ProjectService } from '../services/project.service'
 import type { MyProjectSummaryResponse } from '../types/project-editor'
+import { useApplicationRefresh } from './useApplicationRefresh'
 
 // Publish the first batch while subsequent API pages load in the background.
 // Keep the full collection so existing filters, sorting, and counts still work.
-export const useMyProjectList = (accountId: Ref<string | null>) => {
+export const useMyProjectList = (
+  accountId: Ref<string | null>,
+  query?: Ref<{ search?: string }>
+) => {
   const projects = ref<MyProjectSummaryResponse[]>([])
   const pending = ref(true)
   const loadingMore = ref(false)
   const error = ref<unknown>(null)
   const loadMoreError = ref<unknown>(null)
+  const { revision } = useApplicationRefresh(accountId)
   let sequence = 0
+  let controller: AbortController | null = null
 
   const refresh = async () => {
     const requestSequence = ++sequence
     const requestAccount = accountId.value
+    const search = query?.value.search
+    controller?.abort()
+    controller = new AbortController()
     pending.value = Boolean(requestAccount)
     loadingMore.value = false
     error.value = null
@@ -28,7 +37,9 @@ export const useMyProjectList = (accountId: Ref<string | null>) => {
     let hasNextPage = true
     try {
       while (hasNextPage) {
-        const response = await ProjectService.getMyProjectSummaries({ page, limit: 100 })
+        const response = await ProjectService.getMyProjectSummaries(
+          { page, limit: 100, search }, controller.signal
+        )
         if (requestSequence !== sequence || requestAccount !== accountId.value) return
 
         projects.value = page === 1
@@ -53,10 +64,17 @@ export const useMyProjectList = (accountId: Ref<string | null>) => {
 
   onMounted(() => { void refresh() })
   watch(accountId, () => {
+    controller?.abort()
     projects.value = []
     void refresh()
   })
-  onScopeDispose(() => { sequence++ })
+  watch(query ?? ref({ search: undefined }), () => {
+    sequence++
+    controller?.abort()
+    void refresh()
+  }, { deep: true })
+  watch(revision, () => { if (accountId.value) void refresh() })
+  onScopeDispose(() => { sequence++; controller?.abort() })
 
   return { projects, pending, loadingMore, error, loadMoreError, refresh }
 }

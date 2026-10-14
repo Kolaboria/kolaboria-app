@@ -4,11 +4,11 @@ import type {
   Project,
   CreateProjectPayload,
   ProjectFilters,
-  Application,
   ApplyProjectRequest
 } from '../types/project'
 import type { MyProjectSummaryResponse, ProjectSummaryResponse } from '../types/project-editor'
 import type { ApiPaginatedResponse } from '../types/api'
+import { toProjectDetailView } from '../utils/project-presentation'
 
 const getAllSummaryPages = async <T>(
   loadPage: (page: number) => Promise<ApiPaginatedResponse<T>>
@@ -72,10 +72,7 @@ export const useProjects = () => {
     try {
       const res = await ProjectService.getProjectBySlug(slug)
       if (!res.data) return null
-      return {
-        ...res.data,
-        profiles: res.data.creator
-      }
+      return toProjectDetailView(res.data)
     } catch (err) {
       console.error(`Failed to get project by slug ${slug}:`, err)
       return null
@@ -179,16 +176,6 @@ export const useProjects = () => {
     }
   }
 
-  const getMyApplications = async (): Promise<Application[]> => {
-    try {
-      const res = await ProjectService.getMyApplications()
-      return res.data ?? []
-    } catch (err) {
-      console.error('Failed to get my applications:', err)
-      return []
-    }
-  }
-
   const applyToProject = async (
     projectId: string,
     request: ApplyProjectRequest
@@ -196,40 +183,6 @@ export const useProjects = () => {
     const res = await ProjectService.applyToProject(projectId, request)
     if (res.status >= 400) {
       throw new Error(getApiErrorMessage(res, 'Gagal melamar ke project.'))
-    }
-  }
-
-  // ============================================================
-  // Phase 3 & 4 — Applications & Dashboards
-  // ============================================================
-
-  const getProjectApplicants = async (
-    projectId: string
-  ): Promise<Application[]> => {
-    try {
-      const res = await ProjectService.getProjectApplicants(projectId)
-      return res.data ?? []
-    } catch (err) {
-      console.error(`Failed to get applicants for project ${projectId}:`, err)
-      return []
-    }
-  }
-
-  const reviewApplication = async (
-    applicationId: string,
-    status: 'accepted' | 'rejected',
-    reviewerNote?: string
-  ): Promise<void> => {
-    const res = await ProjectService.reviewApplication(applicationId, status, reviewerNote)
-    if (res.status >= 400) {
-      throw new Error(getApiErrorMessage(res, 'Gagal meninjau lamaran.'))
-    }
-  }
-
-  const withdrawApplication = async (applicationId: string): Promise<void> => {
-    const res = await ProjectService.withdrawApplication(applicationId)
-    if (res.status >= 400) {
-      throw new Error(getApiErrorMessage(res, 'Gagal menarik lamaran.'))
     }
   }
 
@@ -274,11 +227,7 @@ export const useProjects = () => {
     completeProject,
     archiveProject,
     getMyProjects,
-    getMyApplications,
     applyToProject,
-    getProjectApplicants,
-    reviewApplication,
-    withdrawApplication,
     getSkills,
     leaveProject,
     updateMemberStatus,
