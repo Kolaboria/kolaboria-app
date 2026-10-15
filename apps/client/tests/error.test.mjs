@@ -83,6 +83,17 @@ test('safe transport errors retain status, trace and cause without rendering raw
   assert.equal(errors.getApiErrorMessage({ statusCode: 422, data: safe.data }), safe.message)
 })
 
+test('new error envelope retains err_message for diagnostics without showing it as user copy', () => {
+  const error = errors.toUserFacingError({ statusCode: 500, data: {
+    message: 'Unable to load workspace project info',
+    data: { trace_id: 'trace-workspace', err_message: 'database connection refused' }
+  } })
+
+  assert.equal(error.data.data.trace_id, 'trace-workspace')
+  assert.equal(error.data.data.err_message, 'database connection refused')
+  assert.doesNotMatch(error.message, /database connection refused/i)
+})
+
 test('error pages describe missing, inaccessible and failed pages without technical copy', () => {
   const missing = errors.getErrorPageContent({ statusCode: 404, message: 'Not Found' })
   const failure = errors.getErrorPageContent({ statusCode: 500, message: 'database failure' })

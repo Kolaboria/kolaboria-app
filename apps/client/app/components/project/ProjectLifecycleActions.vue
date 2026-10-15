@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Archive, FilePenLine, Trash2 } from '@lucide/vue'
+import { Archive, FilePenLine, Play, Trash2 } from '@lucide/vue'
 import type { ProjectLifecycleAction, ProjectLifecycleTarget } from '~/types/project-editor'
 
 defineProps<{ status: ProjectLifecycleTarget['status']; canManage: boolean; disabled?: boolean }>()
@@ -9,6 +9,9 @@ const buttonClass = 'flex w-full items-center gap-2 px-3.5 py-2 font-body-2 text
 
 <template>
   <div v-if="canManage && (status === 'draft' || status === 'open')">
+    <button v-if="status === 'open'" type="button" :class="buttonClass" :disabled="disabled" @click="emit('select', 'in_progress')">
+      <Play class="size-4 text-tertiary" /> Mulai proyek
+    </button>
     <button v-if="status === 'open'" type="button" :class="buttonClass" :disabled="disabled" @click="emit('select', 'draft')">
       <FilePenLine class="size-4 text-tertiary" /> Kembalikan ke Draft
     </button>

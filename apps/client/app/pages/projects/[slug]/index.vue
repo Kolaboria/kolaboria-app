@@ -962,7 +962,10 @@ const transparencyItems = computed(() =>
 )
 
 const applicationStatusCopy = computed(() =>
-  getProjectApplicationStatusCopy(project.value?.viewer_application?.status)
+  getProjectApplicationStatusCopy(
+    project.value?.viewer_application?.status,
+    project.value?.status
+  )
 )
 const applicationUnavailableTitle = computed(() =>
   isReapplyCooldownActive.value

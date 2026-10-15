@@ -13,6 +13,7 @@ import type {
 } from "~/types/project-editor";
 import ProjectLifecycleActions from "./ProjectLifecycleActions.vue";
 import { getProjectCategoryLabel } from "~/constants/projectCategory";
+import { projectWorkspacePath } from "~/utils/workspace-paths";
 
 const props = defineProps<{
   project: MyProjectSummaryResponse;
@@ -38,6 +39,12 @@ const canManage = computed(
     props.project.owner_id === props.currentUserId ||
     (!props.project.owner_id && props.project.my_scope === "initiated"),
 );
+const canAccessWorkspace = computed(
+  () =>
+    canManage.value &&
+    ["open", "in_progress"].includes(props.project.status),
+);
+const workspaceUrl = computed(() => projectWorkspacePath(props.project.slug));
 const canEdit = computed(
   () =>
     canManage.value &&
@@ -280,7 +287,8 @@ const pendingCount = computed(() => props.pendingApplicantsCount ?? 0);
                 </NuxtLink>
 
                 <NuxtLink
-                  :to="`/projects/${project.slug}/workspace`"
+                  v-if="canAccessWorkspace"
+                  :to="workspaceUrl"
                   class="flex items-center gap-2 px-3.5 py-2 font-body-2 text-secondary transition-colors hover:bg-neutral-50 hover:text-primary"
                   @click="isMenuOpen = false"
                 >

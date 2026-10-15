@@ -96,7 +96,7 @@
                 {{ userStats.accepted }}
               </p>
               <p class="font-body-3 text-neutral-400 mt-1 text-xs">
-                Siap berkolaborasi
+                Keputusan positif
               </p>
             </div>
 
@@ -267,7 +267,7 @@
                     v-else-if="app.status === 'accepted'"
                     class="bg-success-50/70 border border-success-100/80 rounded-xl p-3 text-success-900 font-body-3 mt-3.5"
                   >
-                    Lamaran diterima! Siap berkolaborasi.
+                    {{ getProjectApplicationStatusCopy(app.status, app.projects?.status)?.message }}
                   </div>
                   <div
                     v-else-if="app.status === 'rejected'"
@@ -291,6 +291,15 @@
                     </span>
 
                     <div class="flex items-center gap-2">
+                      <NuxtLink
+                        v-if="app.status === 'accepted' && app.projects?.status === 'in_progress'"
+                        :to="projectWorkspacePath(app.projects.slug)"
+                      >
+                        <AtomicButton variant="primary" size="sm" class="font-semibold text-xs! sm:text-sm!">
+                          Buka Workspace
+                        </AtomicButton>
+                      </NuxtLink>
+
                       <AtomicButton
                         v-if="app.status === 'pending'"
                         variant="outline-danger"
@@ -469,7 +478,7 @@
           v-else-if="selectedApp.status === 'accepted'"
           class="bg-success-50/70 border border-success-100/80 rounded-xl p-3.5 text-success-900 font-body-3 leading-relaxed"
         >
-          Pengajuanmu telah diterima! Kamu siap berkolaborasi dalam proyek ini.
+          {{ getProjectApplicationStatusCopy(selectedApp.status, selectedApp.projects?.status)?.message }}
         </div>
         <div
           v-else-if="selectedApp.status === 'rejected'"
@@ -614,6 +623,8 @@ import { ApplicationService } from '~/services/application.service'
 import { getApiErrorMessage } from '../../utils/error'
 import type { ApplicationOrigin, ApplicationStatus } from '~/types/application'
 import { toApplicationDetailCardView, toMyApplicationCardView, type MyApplicationCardView } from '~/utils/application-presentation'
+import { getProjectApplicationStatusCopy } from '~/utils/project-presentation'
+import { projectWorkspacePath } from '~/utils/workspace-paths'
 
 definePageMeta({ layout: 'home', middleware: ['auth', 'onboarding-guard'] })
 useHead({ title: 'Pengajuan Saya — Kolaboria' })

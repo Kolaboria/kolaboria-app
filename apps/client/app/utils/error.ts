@@ -86,7 +86,7 @@ export class UserFacingError extends Error {
   readonly statusCode?: number
   readonly status?: number
   readonly verificationResendAvailableAt?: string
-  readonly data: { status?: number; message: string; data?: { trace_id: string } }
+  readonly data: { status?: number; message: string; data?: { trace_id?: string; err_message?: string } }
 
   constructor(error: unknown, fallback?: string) {
     super(getApiErrorMessage(error, fallback), { cause: error })
@@ -105,10 +105,16 @@ export class UserFacingError extends Error {
       this.verificationResendAvailableAt = availableAt
     }
     const traceId = details?.trace_id ?? payload?.trace_id
+    const errMessage = details?.err_message
     this.data = {
       status: this.statusCode,
       message: this.message,
-      ...(typeof traceId === 'string' ? { data: { trace_id: traceId } } : {})
+      ...(typeof traceId === 'string' || typeof errMessage === 'string'
+        ? { data: {
+            ...(typeof traceId === 'string' ? { trace_id: traceId } : {}),
+            ...(typeof errMessage === 'string' ? { err_message: errMessage } : {})
+          } }
+        : {})
     }
   }
 }

@@ -24,15 +24,15 @@ const mountEditor = (options = {}) => {
 }
 const internal = { system_role: 'admin', initiable_organizations: [organization] }
 
-test('publication rechecks eligibility when a pending operation completes', async () => {
+test('atomic publication records the server result when eligibility changes while the request is pending', async () => {
   const eligibility = reactive({ email_verified: true, onboarding_completed: true })
   const editor = mountEditor({ eligibility, delayMs: 20 })
   const pending = editor.bindings.publish()
   assert.equal(editor.bindings.isSubmitting.value, true)
   eligibility.email_verified = false
-  assert.equal(await pending, false)
-  assert.equal(editor.bindings.record.value.status, 'draft')
-  assert.equal(editor.bindings.saveResult.value.kind, 'draft')
+  assert.equal(await pending, true)
+  assert.equal(editor.bindings.record.value.status, 'open')
+  assert.equal(editor.bindings.saveResult.value.kind, 'published')
   editor.unmount()
 })
 

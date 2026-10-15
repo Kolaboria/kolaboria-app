@@ -8,12 +8,12 @@ export type ProjectCategory =
   | 'other'
 
 export const PROJECT_CATEGORY_OPTIONS = [
-  { value: 'product', label: 'Product' },
-  { value: 'community', label: 'Community' },
-  { value: 'open_source', label: 'Open Source' },
-  { value: 'research', label: 'Research' },
-  { value: 'education', label: 'Education' },
-  { value: 'business', label: 'Business' },
+  { value: 'product', label: 'Produk' },
+  { value: 'community', label: 'Komunitas' },
+  { value: 'open_source', label: 'Sumber Terbuka' },
+  { value: 'research', label: 'Riset' },
+  { value: 'education', label: 'Pendidikan' },
+  { value: 'business', label: 'Bisnis' },
   { value: 'other', label: 'Lainnya' }
 ] as const satisfies ReadonlyArray<{ value: ProjectCategory; label: string }>
 

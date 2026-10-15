@@ -16,6 +16,14 @@ test('application status copy describes pending and accepted applications accura
     title: 'Lamaran diterima',
     message: 'Lamaranmu sudah diterima.'
   })
+  assert.deepEqual(presentation.getProjectApplicationStatusCopy('accepted', 'open'), {
+    title: 'Lamaran diterima',
+    message: 'Lamaranmu diterima. Proyek belum dimulai; Workspace akan tersedia setelah Project Lead memulai proyek.'
+  })
+  assert.deepEqual(presentation.getProjectApplicationStatusCopy('accepted', 'in_progress'), {
+    title: 'Lamaran diterima',
+    message: 'Lamaranmu diterima dan proyek sudah berjalan. Buka Workspace dari halaman Pengajuan Saya untuk mulai berkolaborasi.'
+  })
   assert.equal(presentation.getProjectApplicationStatusCopy(null), null)
 })
 
