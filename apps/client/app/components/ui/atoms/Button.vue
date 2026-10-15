@@ -32,7 +32,7 @@
 
       <slot name="icon-left" v-else />
 
-      <span class="font-label-2">
+      <span :class="variant === 'text-button' ? 'font-label-3' : 'font-label-2'">
         <slot>{{ label }}</slot>
       </span>
 
@@ -58,6 +58,7 @@ const props = defineProps({
         'outline',
         'outline-danger',
         'danger',
+        'text-button',
         'ghost-primary',
         'ghost-secondary',
         'ghost-danger',
@@ -106,6 +107,10 @@ const variantClasses = computed(() => {
 
     case 'danger':
       return `bg-danger-500 text-white hover:bg-danger-700 active:bg-danger-900 hover:cursor-pointer
+      `
+
+    case 'text-button':
+      return `text-primary-700 bg-transparent hover:text-primary-900 active:text-primary-900 hover:cursor-pointer px-0! py-0!
       `
 
     case 'ghost-primary':

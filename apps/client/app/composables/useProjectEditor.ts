@@ -292,7 +292,7 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
   }
 
   const persistToServer = async (
-    kind: 'draft' | 'updated'
+    kind: 'draft' | 'updated' | 'published'
   ): Promise<boolean> => {
     const persistence = options.persistence
     if (!(options.contextAvailable?.() ?? true)) {
@@ -302,7 +302,8 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
     }
     if (
       !validateForPersistence(
-        kind === 'updated' && record.value?.status !== 'draft'
+        kind === 'published' ||
+          (kind === 'updated' && record.value?.status !== 'draft')
       )
     )
       return false
@@ -333,10 +334,13 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
         }
         pendingCreates.set(scope, frozenCreate)
         persistPendingCreates()
-        detail = await persistence.create({
+        const request = {
           client_request_id: frozenCreate.clientRequestId,
           definition: toProjectDefinition(frozenCreate.draft)
-        })
+        }
+        detail = kind === 'published'
+          ? await persistence.publishNew(request)
+          : await persistence.create(request)
       } else {
         if (!record.value?.id) {
           submitError.value =
@@ -368,7 +372,7 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
           : reconcileCreateResult(latest, frozenCreate.draft, serverRecord)
         record.value = serverRecord
         baseline.value = snapshotDraft(serverRecord.draft)
-        if (!unchangedSinceRequest) {
+        if (!unchangedSinceRequest && kind !== 'published') {
           const updatedDetail = await persistence.update(serverRecord.id, {
             version: serverRecord.version,
             definition: toProjectDefinition(draft.value)
@@ -391,10 +395,13 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
       storageWarning.value = ''
       saveResult.value = {
         kind,
-        message:
-          kind === 'draft'
-            ? 'Draft proyek berhasil disimpan.'
-            : 'Perubahan proyek berhasil disimpan.'
+        message: kind === 'draft'
+          ? 'Draft proyek berhasil disimpan.'
+          : kind === 'updated'
+            ? 'Perubahan proyek berhasil disimpan.'
+            : detail.status === 'awaiting_owner'
+              ? 'Proyek dipublikasikan dan menunggu Project Lead.'
+              : 'Proyek berhasil dipublikasikan.'
       }
       return true
     } catch (error: unknown) {
@@ -420,7 +427,9 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
           error,
           kind === 'draft'
             ? 'Draft belum tersimpan. Coba lagi; isianmu tetap tersedia.'
-            : 'Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.'
+            : kind === 'published'
+              ? 'Proyek belum berhasil dipublikasikan. Coba lagi; isianmu tetap tersedia.'
+              : 'Perubahan belum tersimpan. Periksa koneksi lalu coba lagi.'
         )
       }
       return false
@@ -616,10 +625,7 @@ export const useProjectEditor = (options: ProjectEditorOptions) => {
     submitError.value = ''
     saveResult.value = null
     try {
-      if (!record.value || isDirty.value) {
-        const saved = await persistToServer(record.value ? 'updated' : 'draft')
-        if (!saved) return false
-      }
+      if (!record.value?.id) return await persistToServer('published')
       if (isDirty.value && !(await persistToServer('updated'))) return false
       if (!canPublish.value) {
         submitError.value =

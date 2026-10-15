@@ -195,9 +195,13 @@ const publish = () => {
     title: isOrganization.value
       ? 'Publikasikan proyek organisasi?'
       : 'Publikasikan proyek?',
-    description: isOrganization.value && !editor.record.value?.ownership?.owner_id
-      ? 'Proyek akan dipublikasikan untuk mencari Project Lead. Perubahan definisi disimpan terlebih dahulu.'
-      : 'Proyek akan dipublikasikan secara publik. Perubahan definisi disimpan terlebih dahulu.',
+    description: props.mode === 'create' && !editor.record.value?.id
+      ? isOrganization.value
+        ? 'Proyek akan langsung dipublikasikan untuk mencari Project Lead.'
+        : 'Proyek akan langsung dipublikasikan dan dapat dilihat oleh kontributor.'
+      : isOrganization.value && !editor.record.value?.ownership?.owner_id
+        ? 'Proyek akan dipublikasikan untuk mencari Project Lead. Perubahan pada draft akan disimpan bersama publikasi.'
+        : 'Proyek akan dipublikasikan secara publik. Perubahan pada draft akan disimpan bersama publikasi.',
     type: 'info',
     positiveLabel: 'Ya, publikasikan',
     negativeLabel: 'Kembali',

@@ -42,9 +42,16 @@ export const useMyProjectList = (
         )
         if (requestSequence !== sequence || requestAccount !== accountId.value) return
 
+        // The API's "my-projects" scope also includes active contributors.
+        // This list represents projects the viewer leads/manages, so retain
+        // owned projects and unclaimed organizational projects they initiated.
+        const managedProjects = response.data.filter((project) =>
+          project.owner_id === requestAccount ||
+          (!project.owner_id && project.my_scope === 'initiated')
+        )
         projects.value = page === 1
-          ? [...response.data]
-          : [...projects.value, ...response.data]
+          ? managedProjects
+          : [...projects.value, ...managedProjects]
         pending.value = false
         hasNextPage = page < (response.meta?.total_pages ?? page)
         loadingMore.value = hasNextPage

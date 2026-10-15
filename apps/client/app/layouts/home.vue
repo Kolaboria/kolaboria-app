@@ -236,7 +236,7 @@ const handleMobileNavbarBack = () => {
     <main
       class="mx-auto w-full pt-4"
       :class="[
-        mobileNavbar?.mainWidth === 'wide' ? 'lg:max-w-7xl' : 'lg:max-w-5/6',
+        mobileNavbar?.mainWidth === 'wide' ? 'lg:max-w-7xl' : 'lg:max-w-4/6',
         mobileNavbar?.mainHorizontalPadding === 'none' ? 'px-0' : 'px-4',
         isMobileBottomNavRoute ? 'pb-24 md:pb-4' : '',
         isProfileEditFormRoute ? 'flex flex-1 flex-col pb-0 lg:pb-4' : '',

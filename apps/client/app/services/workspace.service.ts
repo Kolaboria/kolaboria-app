@@ -17,8 +17,28 @@ import type {
   UpdateDeliverablePayload
 } from '../types/workspace'
 import type { WorkHistory } from '../types/project'
+import type { WorkspaceProjectInfoDTO } from '../types/workspace-info'
 
 export const WorkspaceService = {
+  async getProjectInfo(projectSlug: string, signal?: AbortSignal): Promise<WorkspaceProjectInfoDTO> {
+    const { $api } = useApi()
+    const response = await $api<ApiResponse<WorkspaceProjectInfoDTO>>(
+      API_ENDPOINTS.WORKSPACE.INFO(projectSlug),
+      { signal }
+    )
+    if (!response.data) throw new Error(getApiErrorMessage(response, 'Informasi proyek belum dapat dimuat.'))
+    return response.data
+  },
+
+  async startProject(projectId: string, request: { version: number; confirm_underfilled_positions: boolean }) {
+    const { $api } = useApi()
+    const response = await $api<ApiResponse<unknown>>(API_ENDPOINTS.PROJECT.STATUS(projectId), {
+      method: 'PATCH',
+      body: { ...request, status: 'in_progress' }
+    })
+    if (!response.data) throw new Error(getApiErrorMessage(response, 'Proyek belum dapat dimulai.'))
+  },
+
   async getTasks(projectId: string): Promise<Task[]> {
     const { $api } = useApi()
     const res = await $api<ApiResponse<Task[]>>(

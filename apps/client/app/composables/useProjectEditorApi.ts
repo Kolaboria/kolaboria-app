@@ -5,6 +5,7 @@ import type {
   CreateProjectDraftRequest,
   ProjectDetailResponse,
   ProjectEditorPersistence,
+  PublishNewProjectRequest,
   PublishProjectRequest,
   UpdateProjectDefinitionRequest
 } from '../types/project-editor'
@@ -24,6 +25,10 @@ export const createProjectEditorApi = (
   return {
     create: (body: CreateProjectDraftRequest) => readData(request<ProjectDetailResponse>(
       API_ENDPOINTS.PROJECT.EDITOR_CREATE,
+      { method: 'POST', body }
+    )),
+    publishNew: (body: PublishNewProjectRequest) => readData(request<ProjectDetailResponse>(
+      API_ENDPOINTS.PROJECT.EDITOR_PUBLISH_NEW,
       { method: 'POST', body }
     )),
     update: (id: string, body: UpdateProjectDefinitionRequest) => readData(request<ProjectDetailResponse>(

@@ -167,6 +167,57 @@ test('publishing persists the project and locks duplicate submissions', async ()
   editor.unmount()
 })
 
+test('publishing a new project sends one publish request without creating a draft', async () => {
+  const fixture = createProjectEditorFixture('platform-portofolio-talenta-digital')
+  const base = createProjectEditorTestPersistence({ currentUserId: 'internal-a' })
+  const requests = []
+  const persistence = {
+    ...base,
+    create: async (request) => {
+      requests.push('draft')
+      return base.create(request)
+    },
+    publishNew: async (request) => {
+      requests.push('publish')
+      const draft = await base.create(request)
+      return base.publish(draft.id, { version: draft.version })
+    }
+  }
+  const editor = createEditor({
+    initialDraft: fixture.draft,
+    eligibility: { email_verified: true, onboarding_completed: true },
+    persistence
+  })
+
+  assert.equal(await editor.bindings.publish(), true)
+  assert.deepEqual(requests, ['publish'])
+  assert.equal(editor.bindings.record.value.status, 'open')
+  editor.unmount()
+})
+
+test('saving a new draft calls only the draft endpoint', async () => {
+  const fixture = createProjectEditorFixture('platform-portofolio-talenta-digital')
+  const base = createProjectEditorTestPersistence({ currentUserId: 'internal-a' })
+  const requests = []
+  const persistence = {
+    ...base,
+    create: async (request) => {
+      requests.push('draft')
+      return base.create(request)
+    },
+    publishNew: async (request) => {
+      requests.push('publish')
+      return base.publishNew(request)
+    }
+  }
+  const editor = createEditor({ initialDraft: fixture.draft, persistence })
+
+  assert.equal(await editor.bindings.saveDraft(), true)
+  assert.deepEqual(requests, ['draft'])
+  assert.equal(editor.bindings.record.value.status, 'draft')
+  editor.unmount()
+})
+
 test('edit mode publishes a saved draft only after saving its latest definition', async () => {
   const fixture = createProjectEditorFixture('platform-portofolio-talenta-digital')
   const updateRequests = []
@@ -232,13 +283,11 @@ test('edit mode publishes a saved draft only after saving its latest definition'
   editor.unmount()
 })
 
-test('publish retries an uncertain create, saves edits made after the timeout, then publishes the latest version', async () => {
+test('publish retry reuses the idempotent direct-publish request after a timeout', async () => {
   const fixture = createProjectEditorFixture('platform-portofolio-talenta-digital')
   const pendingCreateStorage = memoryStorage()
-  const createRequests = []
-  const updateRequests = []
-  let publishVersion = 0
-  let createAttempt = 0
+  const publishRequests = []
+  let publishAttempt = 0
   const detailFrom = (definition, version, status = 'draft') => ({
     id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     slug: definition.slug,
@@ -270,21 +319,15 @@ test('publish retries an uncertain create, saves edits made after the timeout, t
     }))
   })
   const persistence = {
-    create: async (request) => {
-      createRequests.push(structuredClone(request))
-      createAttempt += 1
-      if (createAttempt === 1) throw new Error('request timed out')
-      return detailFrom(request.definition, 1)
+    create: async () => { throw new Error('publish must not create a draft') },
+    publishNew: async (request) => {
+      publishRequests.push(structuredClone(request))
+      publishAttempt += 1
+      if (publishAttempt === 1) throw new Error('request timed out')
+      return detailFrom(request.definition, 1, 'open')
     },
-    update: async (_id, request) => {
-      updateRequests.push(structuredClone(request))
-      return detailFrom(request.definition, request.version + 1)
-    },
-    publish: async (_id, request) => {
-      publishVersion = request.version
-      const definition = updateRequests.at(-1)?.definition || createRequests.at(-1).definition
-      return detailFrom(definition, request.version + 1, 'open')
-    },
+    update: async () => { throw new Error('publish retry must not update a draft') },
+    publish: async () => { throw new Error('publish must use atomic create-and-publish') },
     loadBySlug: async () => { throw new Error('not used') }
   }
   const editor = createEditor({
@@ -305,15 +348,11 @@ test('publish retries an uncertain create, saves edits made after the timeout, t
     pendingCreateStorage
   })
   assert.equal(reloaded.bindings.draft.value.title, fixture.draft.title)
-  reloaded.bindings.draft.value.title = 'Judul setelah timeout'
   assert.equal(await reloaded.bindings.publish(), true)
 
-  assert.equal(createRequests.length, 2)
-  assert.deepEqual(createRequests[1], createRequests[0])
-  assert.equal(updateRequests.length, 1)
-  assert.equal(updateRequests[0].definition.title, 'Judul setelah timeout')
-  assert.equal(publishVersion, 2)
-  assert.equal(reloaded.bindings.record.value.draft.title, 'Judul setelah timeout')
+  assert.equal(publishRequests.length, 2)
+  assert.deepEqual(publishRequests[1], publishRequests[0])
+  assert.equal(reloaded.bindings.record.value.draft.title, fixture.draft.title)
   assert.equal(reloaded.bindings.isDirty.value, false)
   reloaded.unmount()
 })

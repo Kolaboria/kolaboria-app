@@ -64,6 +64,7 @@ export const API_ENDPOINTS = {
       `/projects/slug/${encodeURIComponent(slug)}`,
     MY_PROJECTS: '/projects/my-projects',
     EDITOR_CREATE: '/projects',
+    EDITOR_PUBLISH_NEW: '/projects/publish',
     EDITOR_UPDATE: (id: string) => `/projects/${encodeURIComponent(id)}`,
     EDITOR_PUBLISH: (id: string) => `/projects/${encodeURIComponent(id)}/publish`,
     STATUS: (id: string) => `/projects/${id}/status`,
@@ -83,6 +84,14 @@ export const API_ENDPOINTS = {
   },
 
   WORKSPACE: {
+    INFO: (projectSlug: string) => `/workspaces/${encodeURIComponent(projectSlug)}/info`,
+    DISCUSSIONS: (projectSlug: string) => `/workspaces/${encodeURIComponent(projectSlug)}/discussions`,
+    DISCUSSION: (projectSlug: string, discussionId: string) =>
+      `/workspaces/${encodeURIComponent(projectSlug)}/discussions/${encodeURIComponent(discussionId)}`,
+    DISCUSSION_REPLIES: (projectSlug: string, discussionId: string) =>
+      `/workspaces/${encodeURIComponent(projectSlug)}/discussions/${encodeURIComponent(discussionId)}/replies`,
+    DISCUSSION_REPLY: (projectSlug: string, discussionId: string, replyId: string) =>
+      `/workspaces/${encodeURIComponent(projectSlug)}/discussions/${encodeURIComponent(discussionId)}/replies/${encodeURIComponent(replyId)}`,
     TASKS: (projectId: string) => `/projects/${projectId}/workspace/tasks`,
     ACTIVITIES: (projectId: string) =>
       `/projects/${projectId}/workspace/activities`,

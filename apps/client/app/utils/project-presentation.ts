@@ -110,7 +110,8 @@ export const toProjectDetailView = (detail: ProjectDetailResponse): Project => {
 }
 
 export const getProjectApplicationStatusCopy = (
-  status: string | null | undefined
+  status: string | null | undefined,
+  projectStatus?: string | null
 ): { title: string; message: string } | null => {
   if (status === 'pending') {
     return {
@@ -120,6 +121,20 @@ export const getProjectApplicationStatusCopy = (
   }
 
   if (status === 'accepted') {
+    if (projectStatus === 'open') {
+      return {
+        title: 'Lamaran diterima',
+        message: 'Lamaranmu diterima. Proyek belum dimulai; Workspace akan tersedia setelah Project Lead memulai proyek.'
+      }
+    }
+
+    if (projectStatus === 'in_progress') {
+      return {
+        title: 'Lamaran diterima',
+        message: 'Lamaranmu diterima dan proyek sudah berjalan. Buka Workspace dari halaman Pengajuan Saya untuk mulai berkolaborasi.'
+      }
+    }
+
     return {
       title: 'Lamaran diterima',
       message: 'Lamaranmu sudah diterima.'

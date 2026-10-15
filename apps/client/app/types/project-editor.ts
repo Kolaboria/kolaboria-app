@@ -147,6 +147,8 @@ export interface CreateProjectDraftRequest {
   definition: ProjectDefinitionInput
 }
 
+export type PublishNewProjectRequest = CreateProjectDraftRequest
+
 export interface UpdateProjectDefinitionRequest {
   version: number
   definition: ProjectDefinitionInput
@@ -156,7 +158,7 @@ export interface PublishProjectRequest {
   version: number
 }
 
-export type ProjectLifecycleAction = 'draft' | 'archived' | 'delete'
+export type ProjectLifecycleAction = 'draft' | 'archived' | 'delete' | 'in_progress'
 export interface ProjectLifecycleTarget {
   id: string
   title: string
@@ -165,7 +167,8 @@ export interface ProjectLifecycleTarget {
 }
 export interface ChangeProjectStatusRequest {
   version: number
-  status: 'draft' | 'archived'
+  status: 'draft' | 'archived' | 'in_progress'
+  confirm_underfilled_positions?: boolean
 }
 export interface ProjectLifecycleGateway {
   changeStatus(id: string, request: ChangeProjectStatusRequest): Promise<ProjectDetailResponse>
@@ -236,6 +239,7 @@ export interface ProjectDetailResponse extends Omit<ProjectDefinitionInput, 'rol
 
 export interface ProjectEditorPersistence {
   create(request: CreateProjectDraftRequest): Promise<ProjectDetailResponse>
+  publishNew(request: PublishNewProjectRequest): Promise<ProjectDetailResponse>
   update(id: string, request: UpdateProjectDefinitionRequest): Promise<ProjectDetailResponse>
   publish(id: string, request: PublishProjectRequest): Promise<ProjectDetailResponse>
   loadBySlug(slug: string): Promise<ProjectDetailResponse>

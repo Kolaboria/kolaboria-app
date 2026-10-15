@@ -272,7 +272,15 @@ const currentDisplayedCount = computed(() => {
 const lifecycle = useProjectLifecycle({
   accountId: currentUserId,
   onChanged: async (action) => {
-    toast.success(action === 'delete' ? 'Draft proyek berhasil dihapus.' : action === 'draft' ? 'Proyek berhasil dikembalikan ke draft.' : 'Proyek berhasil diarsipkan.')
+    toast.success(
+      action === 'delete'
+        ? 'Draft proyek berhasil dihapus.'
+        : action === 'draft'
+          ? 'Proyek berhasil dikembalikan ke draft.'
+          : action === 'in_progress'
+            ? 'Proyek berhasil dimulai.'
+            : 'Proyek berhasil diarsipkan.'
+    )
     await refresh()
     currentPage.value = Math.min(currentPage.value, totalPages.value)
   },

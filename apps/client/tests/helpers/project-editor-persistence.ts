@@ -71,6 +71,16 @@ export const createProjectEditorTestPersistence = (
       records.set(id, detail)
       return detail
     },
+    async publishNew(request) {
+      await wait()
+      const id = `test-project-${++sequence}`
+      const status = request.definition.creation_mode === 'organization_initiated'
+        ? 'awaiting_owner'
+        : 'open'
+      const detail = toDetail(request.definition, id, status, 1, userId)
+      records.set(id, detail)
+      return detail
+    },
     async update(id, request) {
       await wait()
       const current = records.get(id)
