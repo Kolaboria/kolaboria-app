@@ -26,9 +26,10 @@ async function fixture(t, settings = {}) {
     let body = ''
     for await (const chunk of request) body += chunk
     calls.push({ url: request.url, method: request.method, authorization: request.headers.authorization, body: body ? JSON.parse(body) : undefined, custom: request.headers['x-custom'] })
+    const path = request.url.slice((settings.basePath ?? '').length)
     for (const listener of listeners) listener()
     response.setHeader('Content-Type', 'application/json')
-    if (request.url === '/auth/refresh') {
+    if (path === '/auth/refresh') {
       if (settings.waitForRefresh) await settings.waitForRefresh
       response.statusCode = settings.refreshStatus ?? 200
       response.end(JSON.stringify(settings.refreshEnvelope ?? {
@@ -39,13 +40,13 @@ async function fixture(t, settings = {}) {
         } : { trace_id: 'refresh-trace' }
       }))
     } else {
-      if (settings.waitForOldRequest && request.headers.authorization === 'Bearer expired-access' && request.url === '/late') await settings.waitForOldRequest
-      response.statusCode = request.url === '/auth/login' || settings.alwaysUnauthorized || request.headers.authorization !== 'Bearer fresh-access' ? 401 : 200
+      if (settings.waitForOldRequest && request.headers.authorization === 'Bearer expired-access' && path === '/late') await settings.waitForOldRequest
+      response.statusCode = path === '/auth/login' || settings.alwaysUnauthorized || request.headers.authorization !== 'Bearer fresh-access' ? 401 : 200
       response.end(JSON.stringify({ status: response.statusCode, data: response.statusCode === 200 ? { saved: true } : { trace_id: 'request-trace' } }))
     }
   })
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
-  globalThis.useRuntimeConfig = () => ({ public: { apiBaseUrl: `http://127.0.0.1:${server.address().port}` } })
+  globalThis.useRuntimeConfig = () => ({ public: { apiBaseUrl: `http://127.0.0.1:${server.address().port}${settings.basePath ?? ''}${settings.trailingSlash ? '/' : ''}` } })
   globalThis.useNuxtApp = () => app
   globalThis.useCookie = name => {
     if (settings.watchCookies) watch(cookies[name], value => cookieWrites.push([name, value]))
@@ -77,6 +78,20 @@ test('401 refresh follows API contract and replays a mutation once with its body
   assert.equal(f.cookies.auth_refresh_token.value, 'fresh-refresh')
   assert.deepEqual(f.navigations, [])
 })
+
+for (const trailingSlash of [false, true]) {
+  test(`versioned base URL preserves /v1 through refresh and replay (trailing slash: ${trailingSlash})`, async t => {
+    const f = await fixture(t, { basePath: '/v1', trailingSlash })
+    assert.deepEqual(await useApi().$api('/protected?sort=recent', {
+      method: 'POST', body: { name: 'New' }
+    }), { status: 200, data: { saved: true } })
+    assert.deepEqual(f.calls.map(call => call.url), [
+      '/v1/protected?sort=recent', '/v1/auth/refresh', '/v1/protected?sort=recent'
+    ])
+    assert.deepEqual(await useApiFetch('/protected'), { status: 200, data: { saved: true } })
+    assert.equal(f.calls.at(-1).url, '/v1/protected')
+  })
+}
 
 test('declarative fetch retries after refresh without reloading the page', async t => {
   const f = await fixture(t)

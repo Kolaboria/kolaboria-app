@@ -1,7 +1,7 @@
 # Refresh access token
 
 `useApi().$api` dan `useApiFetch` memakai satu alur autentikasi. Ketika request
-bersesi menerima HTTP 401, client memanggil `POST /api/v1/auth/refresh` melalui
+bersesi menerima HTTP 401, client memanggil `POST /v1/auth/refresh` melalui
 `apiBaseUrl`, menyimpan token respons, lalu mengulang request asal satu kali.
 Tidak ada reload halaman atau retry tanpa batas.
 

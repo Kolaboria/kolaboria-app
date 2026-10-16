@@ -49,7 +49,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseUrl:
-        process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1',
+        process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:8081/v1',
       googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID
     }
   },
