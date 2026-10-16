@@ -85,7 +85,7 @@ const submitEdit = () => {
           v-if="canWrite && activeReplyId === reply.id"
           class="mt-3"
           :model-value="replyDraft"
-          :heading="`Balas ${reply.author.name}`"
+          :heading="`Balas ${replyToName ?? reply.author.name}`"
           placeholder="Tulis balasan untuk tanggapan ini…"
           :pending="mutationPending"
           @update:model-value="emit('reply-draft-update', $event)"

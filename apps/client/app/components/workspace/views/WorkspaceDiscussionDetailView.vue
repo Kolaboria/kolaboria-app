@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { ArrowLeft, MessageCircle, Pencil, Trash2 } from '@lucide/vue'
 import WorkspaceDiscussionReplyComposer from './WorkspaceDiscussionReplyComposer.vue'
 import WorkspaceDiscussionReplyItem from './WorkspaceDiscussionReplyItem.vue'
+import {
+  formatWorkspaceDiscussionDate,
+  workspaceDiscussionReplyParentId
+} from '~/utils/workspace-discussion-presentation'
 import type {
   WorkspaceDiscussionReplyViewModel,
   WorkspaceDiscussionViewModel
@@ -39,6 +43,13 @@ const editDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const editTitle = ref('')
 const editBody = ref('')
+const discussionTimeZone = ref('UTC')
+
+onMounted(() => {
+  discussionTimeZone.value = Intl.DateTimeFormat().resolvedOptions().timeZone
+})
+
+const formatDate = (value: string) => formatWorkspaceDiscussionDate(value, discussionTimeZone.value)
 
 watch(() => props.discussion.id, () => {
   editDialogOpen.value = false
@@ -72,14 +83,20 @@ const selectReply = (replyId: string) => {
 }
 
 const submitReply = (replyId: string, body: string) => {
-  emit('reply-submit', replyId, body)
+  const targetReply = findReply(replyId, props.replies)
+  emit('reply-submit', targetReply ? workspaceDiscussionReplyParentId(targetReply) : replyId, body)
 }
 
-const formatDate = (value: string): string => {
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? 'Waktu tidak tersedia'
-    : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+const findReply = (
+  replyId: string,
+  replies: WorkspaceDiscussionReplyViewModel[]
+): WorkspaceDiscussionReplyViewModel | undefined => {
+  for (const reply of replies) {
+    if (reply.id === replyId) return reply
+    const nestedReply = findReply(replyId, reply.replies)
+    if (nestedReply) return nestedReply
+  }
+  return undefined
 }
 </script>
 
@@ -165,6 +182,7 @@ const formatDate = (value: string): string => {
             :reply="reply"
             :reply-to-name="null"
             :can-write="canWrite && !reply.parentReplyId && !reply.isDeleted"
+            :time-label="formatDate"
             :active-reply-id="activeReplyId"
             :reply-draft="replyDraft"
             :mutation-pending="mutationPending"
@@ -181,7 +199,8 @@ const formatDate = (value: string): string => {
               <WorkspaceDiscussionReplyItem
                 :reply="followUp"
                 :reply-to-name="reply.author.name"
-                :can-write="false"
+                :can-write="canWrite && !reply.isDeleted && !followUp.isDeleted"
+                :time-label="formatDate"
                 :active-reply-id="activeReplyId"
                 :reply-draft="replyDraft"
                 :mutation-pending="mutationPending"
